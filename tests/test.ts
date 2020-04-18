@@ -19,6 +19,7 @@ import {
   ksSwitch,
   ksTake,
   ksTakeUntil,
+  ksTakeWhile,
   ksTap,
   ksThrottle,
 } from "../src/transformers";
@@ -416,6 +417,13 @@ describe("ksTake", () => {
   it("should complete main stream after notifier emits", async () => {
     const s = ksPeriodic(100, KsBehaviour.COLD).pipe(ksTake(2));
     expect(await getObservableOutput(s)).toEqual([0, 1]);
+  });
+});
+
+describe("ksTakeWhile", () => {
+  it("should emits until provided expression is false", async () => {
+    const s = ksPeriodic(0, KsBehaviour.COLD).pipe(ksTakeWhile((n) => n < 9));
+    expect(await getObservableOutput(s)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   });
 });
 

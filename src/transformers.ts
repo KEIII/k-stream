@@ -228,6 +228,28 @@ export const ksTake = <T>(count: number): TransformFn<T, T> => {
 };
 
 /**
+ * Emit values until provided expression is false.
+ */
+export const ksTakeWhile = <T>(
+  predicate: (value: T) => boolean
+): TransformFn<T, T> => {
+  return (stream: Stream<T>): Stream<T> => {
+    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+      return stream.subscribe({
+        next: (value) => {
+          if (predicate(value)) {
+            next(value);
+          } else {
+            complete();
+          }
+        },
+        complete,
+      });
+    });
+  };
+};
+
+/**
  * Discard emitted values that take less than the specified time between output.
  */
 export const ksDebounce = <T>(dueTime: number): TransformFn<T, T> => {

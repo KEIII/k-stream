@@ -27,7 +27,6 @@ stream.subscribe({
 - RxJS similar
 
 ## ToDo
-- takeWhile
 - delay
 - withLatestFrom
 - scan
