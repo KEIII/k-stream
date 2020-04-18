@@ -316,6 +316,13 @@ describe("ksConcat", () => {
   });
 });
 
+describe("ksMerge", () => {
+  it("should unsubscribe", () => {
+    const x = ksMerge(ksEmpty(), ksEmpty()).subscribe({}).unsubscribe();
+    expect(x).toBeUndefined();
+  });
+});
+
 describe("ksSwitch", () => {
   it("should test switch", async () => {
     const project = (n: number) => {
