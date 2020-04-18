@@ -327,6 +327,11 @@ describe("ksSwitch", () => {
     const b = timer(0).pipe(switchMap(() => timer(0, 0).pipe(take(10))));
     expect(await getObservableOutput(a)).toEqual(await getObservableOutput(b));
   });
+
+  it("should unsubscribe before project emits", async () => {
+    const s = ksOf(0, KsBehaviour.COLD).pipe(ksSwitch(ksEmpty));
+    expect(await getObservableOutput(s)).toEqual([]);
+  });
 });
 
 describe("ksTakeUntil", () => {
@@ -366,6 +371,13 @@ describe("ksTakeUntil", () => {
   it("should completes on empty", async () => {
     const s = ksInterval(1, KsBehaviour.COLD).pipe(ksTakeUntil(ksEmpty()));
     expect(await getObservableOutput(s)).toEqual([]);
+  });
+
+  it("should prevent pipe usage", () => {
+    const f = () => {
+      ksOf(0, KsBehaviour.COLD).pipe(ksTakeUntil(ksEmpty())).pipe(ksMapTo(0));
+    };
+    expect(f).toThrow();
   });
 });
 

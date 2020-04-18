@@ -98,32 +98,50 @@ export const ksSwitch = <T, O>(
   project: (value: T) => Stream<O>
 ): TransformFn<T, O> => {
   return (stream: Stream<T>): Stream<O> => {
-    return ksCreateStream(stream.behaviour, (observer) => {
-      let projectedSubscription: Unsubscribable | null = null;
+    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+      let projectSubscription: Unsubscribable | null = null;
+      let projectCompleted = false;
       let mainCompleted = false;
 
+      const tryComplete = () => {
+        if (mainCompleted && projectCompleted) {
+          complete();
+        }
+      };
+
+      const onProjectComplete = () => {
+        projectCompleted = true;
+        tryComplete();
+      };
+
+      const onMainComplete = () => {
+        mainCompleted = true;
+        tryComplete();
+      };
+
+      const tryUnsubscribeProject = () => {
+        if (projectSubscription !== null) {
+          projectSubscription.unsubscribe();
+        }
+      };
+
+      const onMainNext = (value: T) => {
+        tryUnsubscribeProject();
+        projectCompleted = false;
+        projectSubscription = project(value).subscribe({
+          next,
+          complete: onProjectComplete,
+        });
+      };
+
       const mainSubscription = stream.subscribe({
-        next: (value: T) => {
-          if (projectedSubscription !== null) {
-            projectedSubscription.unsubscribe();
-          }
-          projectedSubscription = project(value).subscribe({
-            next: observer.next,
-            complete: () => {
-              if (mainCompleted) {
-                observer.complete();
-              }
-            },
-          });
-        },
-        complete: () => (mainCompleted = true),
+        next: onMainNext,
+        complete: onMainComplete,
       });
 
       return {
         unsubscribe: () => {
-          if (projectedSubscription !== null) {
-            projectedSubscription.unsubscribe();
-          }
+          tryUnsubscribeProject();
           mainSubscription.unsubscribe();
         },
       };
