@@ -7,8 +7,18 @@ import {
   Unsubscribable,
 } from "./core";
 import { ksMap } from "./transformers";
-import { Some, None, Option } from "./ts-option";
+import { None, Option, Some } from "./ts-option";
 import { Err, Ok, Result } from "./ts-result";
+
+/**
+ * Observable that immediately completes.
+ */
+export const ksEmpty = <T>(): Stream<T> => {
+  return ksCreateStream(KsBehaviour.COLD, ({ complete }) => {
+    complete();
+    return { unsubscribe: noop };
+  });
+};
 
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.

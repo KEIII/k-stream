@@ -25,6 +25,7 @@ import {
 import {
   ksCombineLatest,
   ksConcat,
+  ksEmpty,
   ksForkJoin,
   ksFromPromise,
   ksInterval,
@@ -255,25 +256,16 @@ it("should test forkJoin", async () => {
   expect(await outA).toEqual(await outB);
 });
 
-it("should test switch", async () => {
-  const s = ksPeriodic(1, KsBehaviour.SHARE)
-    .pipe(
-      ksSwitch((n) => {
-        return ksConcat(ksOf(n, KsBehaviour.COLD), ksOf(n, KsBehaviour.COLD));
-      })
-    )
-    .pipe(ksTake(10));
-  expect(await getObservableOutput(s)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
-});
-
-it("should test combineLatest", async () => {
-  const limit = 100;
-  const ms = 5;
-  const s = ksPeriodic(ms, KsBehaviour.COLD).pipe(ksTake(limit));
-  const r = timer(0, ms).pipe(take(limit));
-  expect(await getObservableOutput(ksCombineLatest(s, s))).toEqual(
-    await getObservableOutput(combineLatest([r, r]))
-  );
+describe("ksCombineLatest", () => {
+  it("should combine latest", async () => {
+    const limit = 100;
+    const ms = 5;
+    const s = ksPeriodic(ms, KsBehaviour.COLD).pipe(ksTake(limit));
+    const r = timer(0, ms).pipe(take(limit));
+    expect(await getObservableOutput(ksCombineLatest(s, s))).toEqual(
+      await getObservableOutput(combineLatest([r, r]))
+    );
+  });
 });
 
 describe("ksThrottle", () => {
@@ -296,12 +288,45 @@ describe("ksThrottle", () => {
   });
 });
 
-it("should test debounce", async () => {
-  const s = ksPeriodic(10, KsBehaviour.COLD)
-    .pipe(ksTake(100))
-    .pipe(ksDebounce(1000));
+describe("ksDebounce", () => {
+  it("should test debounce", async () => {
+    const s = ksPeriodic(10, KsBehaviour.COLD)
+      .pipe(ksTake(100))
+      .pipe(ksDebounce(1000));
 
-  expect(await getObservableOutput(s)).toEqual([99]);
+    expect(await getObservableOutput(s)).toEqual([99]);
+  });
+});
+
+describe("ksSwitch", () => {
+  it("should test switch", async () => {
+    const project = (n: number) => {
+      return ksConcat(ksOf(n, KsBehaviour.COLD), ksOf(n, KsBehaviour.COLD));
+    };
+    const s = ksPeriodic(1, KsBehaviour.COLD)
+      .pipe(ksSwitch(project))
+      .pipe(ksTake(10));
+    expect(await getObservableOutput(s)).toEqual([
+      0,
+      0,
+      1,
+      1,
+      2,
+      2,
+      3,
+      3,
+      4,
+      4,
+    ]);
+  });
+
+  it("should work like RxJS", async () => {
+    const a = ksTimeout(0, KsBehaviour.COLD).pipe(
+      ksSwitch(() => ksPeriodic(0, KsBehaviour.COLD).pipe(ksTake(10)))
+    );
+    const b = timer(0).pipe(switchMap(() => timer(0, 0).pipe(take(10))));
+    expect(await getObservableOutput(a)).toEqual(await getObservableOutput(b));
+  });
 });
 
 describe("ksTakeUntil", () => {
@@ -314,11 +339,21 @@ describe("ksTakeUntil", () => {
   });
 
   it("should complete main stream after notifier emits", async () => {
-    const stop = ksTimeout(2000, KsBehaviour.COLD).pipe(
-      ksSwitch(() => ksPeriodic(100, KsBehaviour.COLD))
-    );
+    const stop = ksTimeout(2000, KsBehaviour.COLD);
     const s = ksPeriodic(100, KsBehaviour.COLD).pipe(ksTakeUntil(stop));
     expect((await getObservableOutput(s)).pop()).toBe(19);
+  });
+
+  it("should test notifier could emit multiple times", async () => {
+    const stop = ksTimeout(2000, KsBehaviour.SHARE).pipe(
+      ksSwitch(() => ksPeriodic(50, KsBehaviour.SHARE).pipe(ksTake(10)))
+    );
+    const a = getObservableOutput(
+      ksPeriodic(50, KsBehaviour.COLD).pipe(ksTakeUntil(stop))
+    );
+    const b = getObservableOutput(stop);
+    expect((await a).pop()).toBe(39);
+    expect(await b).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it("should properly unsubscribe", async () => {
@@ -326,6 +361,24 @@ describe("ksTakeUntil", () => {
       ksTakeUntil(ksOf(0, KsBehaviour.COLD))
     );
     expect(await getObservableOutput(s)).toEqual([0]);
+  });
+
+  it("should completes on empty", async () => {
+    const s = ksInterval(1, KsBehaviour.COLD).pipe(ksTakeUntil(ksEmpty()));
+    expect(await getObservableOutput(s)).toEqual([]);
+  });
+});
+
+describe("ksTake", () => {
+  it("should complete main stream before notifier emits", async () => {
+    const random = Math.random();
+    const s = ksOf(random, KsBehaviour.COLD).pipe(ksTake(1));
+    expect(await getObservableOutput(s)).toEqual([random]);
+  });
+
+  it("should complete main stream after notifier emits", async () => {
+    const s = ksPeriodic(100, KsBehaviour.COLD).pipe(ksTake(2));
+    expect(await getObservableOutput(s)).toEqual([0, 1]);
   });
 });
 

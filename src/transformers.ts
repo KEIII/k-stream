@@ -98,18 +98,27 @@ export const ksSwitch = <T, O>(
   project: (value: T) => Stream<O>
 ): TransformFn<T, O> => {
   return (stream: Stream<T>): Stream<O> => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return ksCreateStream(stream.behaviour, (observer) => {
       let projectedSubscription: Unsubscribable | null = null;
+      let mainCompleted = false;
+
       const mainSubscription = stream.subscribe({
         next: (value: T) => {
-          const projectedObservable = project(value);
           if (projectedSubscription !== null) {
             projectedSubscription.unsubscribe();
           }
-          projectedSubscription = projectedObservable.subscribe({ next });
+          projectedSubscription = project(value).subscribe({
+            next: observer.next,
+            complete: () => {
+              if (mainCompleted) {
+                observer.complete();
+              }
+            },
+          });
         },
-        complete,
+        complete: () => (mainCompleted = true),
       });
+
       return {
         unsubscribe: () => {
           if (projectedSubscription !== null) {
@@ -123,46 +132,57 @@ export const ksSwitch = <T, O>(
 };
 
 /**
- * Emit values until provided observable emits.
+ * Emit values until provided observable emits or completes.
  */
 export const ksTakeUntil = <T>(
   notifier: Stream<unknown>
 ): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      let notified = false;
-      let isCompleted = false;
+    const newStream = ksCreateStream<T>(
+      stream.behaviour,
+      ({ next, complete }) => {
+        let notified = false;
+        let isCompleted = false;
 
-      const mainSubscription = stream.subscribe({
-        next,
-        complete: () => {
-          isCompleted = true;
-          complete();
-        },
-      });
+        const mainSubscription = stream.subscribe({
+          next,
+          complete: () => {
+            isCompleted = true;
+            complete();
+          },
+        });
 
-      if (isCompleted) {
-        return mainSubscription;
-      } else {
-        const notifierSubscription = notifier.subscribe({
-          next: () => {
+        if (isCompleted) {
+          return mainSubscription;
+        } else {
+          const terminate = () => {
             if (!notified) {
               notified = true;
+              complete();
               mainSubscription.unsubscribe();
               setTimeout(() => notifierSubscription.unsubscribe());
             }
-          },
-          complete,
-        });
+          };
+          const notifierSubscription = notifier.subscribe({
+            next: terminate,
+            complete: terminate,
+          });
 
-        return {
-          unsubscribe: () => {
-            notifierSubscription.unsubscribe();
-            mainSubscription.unsubscribe();
-          },
-        };
+          return {
+            unsubscribe: () => {
+              notifierSubscription.unsubscribe();
+              mainSubscription.unsubscribe();
+            },
+          };
+        }
       }
-    });
+    );
+    return {
+      ...newStream,
+      pipe: () => {
+        throw "Disallows the application of operators after takeUntil. Operators placed after takeUntil can effect subscription leaks.";
+      },
+    };
   };
 };
 
