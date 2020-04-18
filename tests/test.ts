@@ -71,13 +71,22 @@ describe("ksFromPromise", () => {
     expect(out).toEqual([Err(random)]);
   });
 
-  it("should ignore result after unsubscribe", async () => {
-    const promise = ksToPromise(ksTimeout(20, KsBehaviour.COLD));
-    const stream = ksFromPromise(promise, KsBehaviour.COLD);
-    let completed = false;
-    stream.subscribe({ complete: () => (completed = true) }).unsubscribe();
+  it("should ignore resolved result after unsubscribe", async () => {
+    const stream = ksFromPromise(Promise.resolve(), KsBehaviour.COLD);
+    const promise = ksToPromise(stream);
+    let x = 0;
+    stream.subscribe({ next: () => (x = 1) }).unsubscribe();
     await promise;
-    expect(completed).toBeFalsy();
+    expect(x).toBe(0);
+  });
+
+  it("should ignore rejected result after unsubscribe", async () => {
+    const stream = ksFromPromise(Promise.reject(), KsBehaviour.COLD);
+    const promise = ksToPromise(stream);
+    let x = 0;
+    stream.subscribe({ next: () => (x = 1) }).unsubscribe();
+    await promise;
+    expect(x).toBe(0);
   });
 });
 
