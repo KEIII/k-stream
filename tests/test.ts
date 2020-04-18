@@ -298,6 +298,15 @@ describe("ksDebounce", () => {
   });
 });
 
+describe("ksConcat", () => {
+  it("should unsubscribe before first stream has been completed", () => {
+    const x = ksConcat(ksInterval(100, KsBehaviour.COLD), ksEmpty())
+      .subscribe({})
+      .unsubscribe();
+    expect(x).toBeUndefined();
+  });
+});
+
 describe("ksSwitch", () => {
   it("should test switch", async () => {
     const project = (n: number) => {
