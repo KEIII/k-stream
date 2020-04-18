@@ -105,6 +105,65 @@ export const ksMerge = <T1, T2>(
   });
 };
 
+/**
+ * After all observables emit, emit values as an array.
+ */
+export const ksZip = <T1, T2>(
+  stream1: Stream<T1>,
+  stream2: Stream<T2>
+): Stream<[T1, T2]> => {
+  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+    let completed1 = false;
+    let completed2 = false;
+    const queue1: T1[] = [];
+    const queue2: T2[] = [];
+
+    const tryNext = () => {
+      if (queue1.length > 0 && queue2.length > 0) {
+        next([queue1.shift() as T1, queue2.shift() as T2]);
+      }
+    };
+
+    const tryComplete = () => {
+      if (
+        (completed1 && queue1.length === 0) ||
+        (completed2 && queue2.length === 0)
+      ) {
+        complete();
+      }
+    };
+
+    const subscription1 = stream1.subscribe({
+      next: (value) => {
+        queue1.push(value);
+        tryNext();
+      },
+      complete: () => {
+        completed1 = true;
+        tryComplete();
+      },
+    });
+
+    const subscription2 = stream2.subscribe({
+      next: (value) => {
+        queue2.push(value);
+        tryNext();
+      },
+      complete: () => {
+        completed2 = true;
+        tryComplete();
+      },
+    });
+
+    return {
+      unsubscribe: () => {
+        subscription1.unsubscribe();
+        subscription2.unsubscribe();
+      },
+    };
+  });
+};
+
 export const ksTimeout = (
   ms: number,
   behaviour: KsBehaviour

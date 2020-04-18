@@ -12,6 +12,7 @@ import { KsBehaviour, ksCreateStream, noop, SubscribeFn } from "../src/core";
 import {
   ksChangeBehaviour,
   ksDebounce,
+  ksDelay,
   ksFilter,
   ksMap,
   ksMapTo,
@@ -35,6 +36,7 @@ import {
   ksPeriodic,
   ksTimeout,
   ksToPromise,
+  ksZip,
 } from "../src/factories";
 import { None, Some } from "../src/ts-option";
 import { Err, Ok } from "../src/ts-result";
@@ -173,6 +175,17 @@ describe("KsBehaviour.SHARE", () => {
     });
     expect(await p).toEqual(9);
   });
+
+  it("should not affect original stream", async () => {
+    const a = ksPeriodic(100, KsBehaviour.SHARE)
+      .pipe(ksMap((n) => n + n))
+      .pipe(ksTake(10));
+    const b = a.pipe(ksMap((n) => n * n));
+    const sa = stackOut(a);
+    const sb = stackOut(b);
+    expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
+    expect(await sb).toEqual([4, 16, 36, 64, 100, 144, 196, 256, 324]);
+  });
 });
 
 describe("KsBehaviour.SHARE_REPLAY", () => {
@@ -186,6 +199,17 @@ describe("KsBehaviour.SHARE_REPLAY", () => {
       }, 1000);
     });
     expect(await p).toEqual(8);
+  });
+
+  it("should not affect original stream", async () => {
+    const a = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
+      .pipe(ksMap((n) => n + n))
+      .pipe(ksTake(10));
+    const b = a.pipe(ksMap((n) => n * n));
+    const sa = stackOut(a);
+    const sb = stackOut(b);
+    expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
+    expect(await sb).toEqual([0, 4, 16, 36, 64, 100, 144, 196, 256, 324]);
   });
 });
 
@@ -396,8 +420,8 @@ describe("ksTake", () => {
   });
 
   it("should complete main stream after notifier emits", async () => {
-    const s = ksPeriodic(100, KsBehaviour.COLD).pipe(ksTake(2));
-    expect(await stackOut(s)).toEqual([0, 1]);
+    const s = ksPeriodic(100, KsBehaviour.COLD).pipe(ksTake(5));
+    expect(await stackOut(s)).toEqual([0, 1, 2, 3, 4]);
   });
 });
 
@@ -512,5 +536,51 @@ describe("ksSubject", () => {
 
   it("should accept partial observer", () => {
     expect(ksSubject(0).subscribe({}).unsubscribe()).toBeUndefined();
+  });
+});
+
+describe("ksDelay", () => {
+  it("should delay", async () => {
+    const now = ksMap(() => Date.now());
+    const org = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
+      .pipe(now)
+      .pipe(ksTake(10));
+    const delayed = org.pipe(ksDelay(100)).pipe(now);
+    const zipped = ksZip(org, delayed);
+    for (const [a, b] of await stackOut(zipped)) {
+      const diff = b - a;
+      expect(diff).toBeGreaterThanOrEqual(100);
+      expect(diff).toBeLessThan(104);
+    }
+  });
+
+  it("should unsubscribe before delay", () => {
+    const s = ksPeriodic(0, KsBehaviour.SHARE).pipe(ksDelay(1000));
+    expect(s.subscribe({}).unsubscribe()).toBeUndefined();
+  });
+});
+
+describe("ksZip", () => {
+  it("should zip values", async () => {
+    const a = ksPeriodic(20, KsBehaviour.COLD).pipe(ksTake(10));
+    const b = ksPeriodic(10, KsBehaviour.COLD).pipe(ksTake(20));
+    const s = ksZip(a, b);
+    expect(await stackOut(s)).toEqual([
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4],
+      [5, 5],
+      [6, 6],
+      [7, 7],
+      [8, 8],
+      [9, 9],
+    ]);
+  });
+
+  it("should properly unsubscribe", () => {
+    const s = ksOf(0, KsBehaviour.COLD);
+    expect(ksZip(s, s).subscribe({}).unsubscribe()).toBeUndefined();
   });
 });

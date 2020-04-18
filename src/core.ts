@@ -52,7 +52,7 @@ const createShareStream = <T>(
   let isCompleted = false;
   let lastValue = None<T>();
   let subscription: Unsubscribable | null = null;
-  const observersMap = new Map<{}, Observer<T>>();
+  const observersMap = new Map<Readonly<{}>, Observer<T>>();
 
   const shareNext: NextFn<T> = (value: T): void => {
     if (isCompleted) {
@@ -91,10 +91,10 @@ const createShareStream = <T>(
       observer.next(lastValue.some);
     }
 
-    const id = Object.freeze({});
+    const subscribeId = Object.freeze({});
 
     const unsubscribe = () => {
-      observersMap.delete(id);
+      observersMap.delete(subscribeId);
       if (observersMap.size === 0) {
         if (replay) {
           lastValue = None();
@@ -106,7 +106,7 @@ const createShareStream = <T>(
       }
     };
 
-    observersMap.set(id, observer);
+    observersMap.set(subscribeId, observer);
 
     // NOTE: we need to create subscription after added observer
     if (subscription === null) {

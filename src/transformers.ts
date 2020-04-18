@@ -250,6 +250,48 @@ export const ksTakeWhile = <T>(
 };
 
 /**
+ * Delay emitted values by given time.
+ */
+export const ksDelay = <T>(delay: number): TransformFn<T, T> => {
+  return (stream: Stream<T>): Stream<T> => {
+    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+      const timers = new Map<ReturnType<typeof setTimeout>, void>();
+
+      const clearTimers = () => {
+        for (const t of timers.keys()) {
+          clearTimeout(t);
+        }
+        timers.clear();
+      };
+
+      const subscription = stream.subscribe({
+        next: (value) => {
+          const t = setTimeout(() => {
+            next(value);
+            timers.delete(t);
+          }, delay);
+          timers.set(t);
+        },
+        complete: () => {
+          const t = setTimeout(() => {
+            complete();
+            timers.delete(t);
+          }, delay);
+          timers.set(t);
+        },
+      });
+
+      return {
+        unsubscribe: () => {
+          clearTimers();
+          subscription.unsubscribe();
+        },
+      };
+    });
+  };
+};
+
+/**
  * Discard emitted values that take less than the specified time between output.
  */
 export const ksDebounce = <T>(dueTime: number): TransformFn<T, T> => {
