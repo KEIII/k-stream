@@ -11,8 +11,8 @@ import {
 import {
   KsBehaviour,
   ksCreateStream,
+  ksPipe,
   noop,
-  pipe,
   SubscribeFn,
 } from "../src/core";
 import {
@@ -606,8 +606,8 @@ describe("ksZip", () => {
 
 describe("pipe", () => {
   it("should create transformer by combining existing", async () => {
-    const p = pipe(
-      pipe(
+    const p = ksPipe(
+      ksPipe(
         ksMap((n: number) => n + n),
         ksMap((n: number) => n * n)
       ),
