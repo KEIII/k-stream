@@ -1,7 +1,11 @@
 # Functional reactive stream library for TypeScript
-K-Steam is ~~yet another~~ a library for reactive programming using Observables, to make it easier to compose asynchronous or callback-based code.
+K-Stream is ~~yet another~~ a library for reactive programming using Observables, to make it easier to compose asynchronous or callback-based code.
 
 [![Build Status](https://travis-ci.com/KEIII/k-stream.svg?branch=master)](https://travis-ci.com/KEIII/k-stream) [![Coverage Status](https://coveralls.io/repos/github/KEIII/k-stream/badge.svg?branch=master)](https://coveralls.io/github/KEIII/k-stream?branch=master)
+
+```sh
+npm i @keiii/k-stream
+```
 
 ## Usage
 ```typescript
