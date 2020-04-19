@@ -377,8 +377,8 @@ export const ksThrottle = <T>(duration: number): TransformFn<T, T> => {
 /**
  * Emit the previous and current values as an array.
  */
-export const ksPairwise = () => {
-  return <T>(o: Stream<T>): Stream<[T, T]> => {
+export const ksPairwise = <T>(): TransformFn<T, [T, T]> => {
+  return (o: Stream<T>): Stream<[T, T]> => {
     return ksCreateStream(o.behaviour, ({ next, complete }) => {
       let prevValue = None<T>();
       return o.subscribe({
@@ -387,6 +387,27 @@ export const ksPairwise = () => {
             next([prevValue.some, value]);
           }
           prevValue = Some(value);
+        },
+        complete,
+      });
+    });
+  };
+};
+
+/**
+ * Reduce over time.
+ */
+export const ksScan = <T, O>(
+  accumulator: (acc: O, curr: T) => O,
+  seed: O
+): TransformFn<T, O> => {
+  return (o: Stream<T>): Stream<O> => {
+    return ksCreateStream(o.behaviour, ({ next, complete }) => {
+      let acc = seed;
+      return o.subscribe({
+        next: (value) => {
+          acc = accumulator(acc, value);
+          next(acc);
         },
         complete,
       });

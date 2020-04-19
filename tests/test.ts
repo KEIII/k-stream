@@ -23,6 +23,7 @@ import {
   ksMap,
   ksMapTo,
   ksPairwise,
+  ksScan,
   ksSwitch,
   ksTake,
   ksTakeUntil,
@@ -601,6 +602,26 @@ describe("ksZip", () => {
   it("should properly unsubscribe", () => {
     const s = ksOf(0, KsBehaviour.COLD);
     expect(ksZip(s, s).subscribe({}).unsubscribe()).toBeUndefined();
+  });
+});
+
+describe("ksScan", () => {
+  it("should calculate sum", async () => {
+    const s = ksPeriodic(0, KsBehaviour.COLD)
+      .pipe(ksScan((acc, curr) => [...acc, curr], <number[]>[]))
+      .pipe(ksTake(10));
+    expect(await stackOut(s)).toEqual([
+      [0],
+      [0, 1],
+      [0, 1, 2],
+      [0, 1, 2, 3],
+      [0, 1, 2, 3, 4],
+      [0, 1, 2, 3, 4, 5],
+      [0, 1, 2, 3, 4, 5, 6],
+      [0, 1, 2, 3, 4, 5, 6, 7],
+      [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    ]);
   });
 });
 
