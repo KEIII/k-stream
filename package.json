@@ -1,6 +1,6 @@
 {
   "name": "@keiii/k-stream",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "K-Stream is a functional reactive stream library for TypeScript",
   "main": "index.ts",
   "scripts": {
