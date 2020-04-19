@@ -28,7 +28,7 @@ export type Stream<T> = Observable<T> & {
   readonly behaviour: KsBehaviour;
 };
 
-export enum KsBehaviour {
+export const enum KsBehaviour {
   COLD,
   SHARE,
   SHARE_REPLAY,
