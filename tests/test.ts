@@ -540,17 +540,19 @@ describe("ksSubject", () => {
 });
 
 describe("ksDelay", () => {
-  it("should delay", async () => {
+  it("should delay emitted values by given time", async () => {
+    const delay = 100;
+    const accuracy = 4;
     const now = ksMap(() => Date.now());
     const org = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
       .pipe(now)
       .pipe(ksTake(10));
-    const delayed = org.pipe(ksDelay(100)).pipe(now);
+    const delayed = org.pipe(ksDelay(delay)).pipe(now);
     const zipped = ksZip(org, delayed);
     for (const [a, b] of await stackOut(zipped)) {
       const diff = b - a;
-      expect(diff).toBeGreaterThanOrEqual(100);
-      expect(diff).toBeLessThan(104);
+      expect(diff).toBeGreaterThanOrEqual(delay - accuracy);
+      expect(diff).toBeLessThanOrEqual(delay + accuracy);
     }
   });
 
