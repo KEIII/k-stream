@@ -2,6 +2,7 @@
   "name": "@keiii/k-stream",
   "version": "0.0.2",
   "description": "K-Stream is a functional reactive stream library for TypeScript",
+  "main": "index.ts",
   "scripts": {
     "test": "jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",

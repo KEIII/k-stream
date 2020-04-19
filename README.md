@@ -9,10 +9,7 @@ npm i @keiii/k-stream
 
 ## Usage
 ```typescript
-import { ksPeriodic as periodic } from "./factories";
-import { KsBehaviour as Behaviour } from "./core";
-import { ksFilter as filter, ksTake as take } from "./transformers";
-import { Some, None } from "./ts-option";
+import { ksPeriodic as periodic, KsBehaviour as Behaviour, ksFilter as filter, ksTake as take, Some, None } from "@keiii/k-stream";
 
 const stream = periodic(100, Behaviour.SHARE_REPLAY)
   .pipe(filter((n) => (n % 2 === 0 ? Some(n) : None<typeof n>())))
