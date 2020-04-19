@@ -566,8 +566,19 @@ describe("ksZip", () => {
   it("should zip values", async () => {
     const a = ksPeriodic(20, KsBehaviour.COLD).pipe(ksTake(10));
     const b = ksPeriodic(10, KsBehaviour.COLD).pipe(ksTake(20));
-    const s = ksZip(a, b);
-    expect(await stackOut(s)).toEqual([
+    expect(await stackOut(ksZip(a, b))).toEqual([
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4],
+      [5, 5],
+      [6, 6],
+      [7, 7],
+      [8, 8],
+      [9, 9],
+    ]);
+    expect(await stackOut(ksZip(b, a))).toEqual([
       [0, 0],
       [1, 1],
       [2, 2],
