@@ -180,3 +180,13 @@ export const ksCreateStream = <T>(
     }
   }
 };
+
+/**
+ * Combine transformers.
+ */
+export const pipe = <A, B, C>(
+  t1: TransformFn<A, B>,
+  t2: TransformFn<B, C>
+): TransformFn<A, C> => {
+  return (s: Stream<A>): Stream<C> => s.pipe(t1).pipe(t2);
+};

@@ -8,7 +8,13 @@ import {
   takeUntil,
   tap,
 } from "rxjs/operators";
-import { KsBehaviour, ksCreateStream, noop, SubscribeFn } from "../src/core";
+import {
+  KsBehaviour,
+  ksCreateStream,
+  noop,
+  pipe,
+  SubscribeFn,
+} from "../src/core";
 import {
   ksChangeBehaviour,
   ksDebounce,
@@ -595,5 +601,19 @@ describe("ksZip", () => {
   it("should properly unsubscribe", () => {
     const s = ksOf(0, KsBehaviour.COLD);
     expect(ksZip(s, s).subscribe({}).unsubscribe()).toBeUndefined();
+  });
+});
+
+describe("pipe", () => {
+  it("should create transformer by combining existing", async () => {
+    const p = pipe(
+      pipe(
+        ksMap((n: number) => n + n),
+        ksMap((n: number) => n * n)
+      ),
+      ksMap((n: number) => String(n))
+    );
+    const s = ksOf(2, KsBehaviour.COLD).pipe(p);
+    expect((await stackOut(s))[0]).toBe("16");
   });
 });
