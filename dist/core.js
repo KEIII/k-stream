@@ -17,6 +17,8 @@ var KsBehaviour;
     KsBehaviour[KsBehaviour["COLD"] = 0] = "COLD";
     KsBehaviour[KsBehaviour["SHARE"] = 1] = "SHARE";
     KsBehaviour[KsBehaviour["SHARE_REPLAY"] = 2] = "SHARE_REPLAY";
+    KsBehaviour[KsBehaviour["PUBLISH"] = 3] = "PUBLISH";
+    KsBehaviour[KsBehaviour["PUBLISH_REPLAY"] = 4] = "PUBLISH_REPLAY";
 })(KsBehaviour = exports.KsBehaviour || (exports.KsBehaviour = {}));
 exports.noop = function () { };
 exports.observerFromPartial = function (o) {
@@ -25,12 +27,43 @@ exports.observerFromPartial = function (o) {
         complete: o.complete !== undefined ? o.complete : exports.noop,
     };
 };
+var createColdStream = function (subscribeFn) {
+    var subscribe = function (partialObserver) {
+        var isCompleted = false;
+        var observer = exports.observerFromPartial(partialObserver);
+        return subscribeFn({
+            next: function (value) {
+                if (isCompleted) {
+                    console.warn("Logic error: Ignore call next on completed stream.");
+                }
+                else {
+                    observer.next(value);
+                }
+            },
+            complete: function () {
+                if (isCompleted) {
+                    console.warn("Logic error: Ignore call complete on completed stream.");
+                }
+                else {
+                    isCompleted = true;
+                    observer.complete();
+                }
+            },
+        });
+    };
+    var stream = {
+        subscribe: subscribe,
+        pipe: function (transformFn) { return transformFn(stream); },
+        behaviour: KsBehaviour.COLD,
+    };
+    return stream;
+};
 var createShareStream = function (subscribeFn, replay) {
     var isCompleted = false;
     var lastValue = ts_option_1.None();
     var subscription = null;
     var observersMap = new Map();
-    var shareNext = function (value) {
+    var onNext = function (value) {
         var e_1, _a;
         if (isCompleted) {
             console.warn("Logic error: Ignore call next on completed stream.");
@@ -54,7 +87,7 @@ var createShareStream = function (subscribeFn, replay) {
             }
         }
     };
-    var shareComplete = function () {
+    var onComplete = function () {
         var e_2, _a;
         if (isCompleted) {
             console.warn("Logic error: Ignore call complete on completed stream.");
@@ -101,8 +134,8 @@ var createShareStream = function (subscribeFn, replay) {
         // NOTE: we need to create subscription after added observer
         if (subscription === null) {
             subscription = subscribeFn({
-                next: shareNext,
-                complete: shareComplete,
+                next: onNext,
+                complete: onComplete,
             });
         }
         return { unsubscribe: unsubscribe };
@@ -114,34 +147,78 @@ var createShareStream = function (subscribeFn, replay) {
     };
     return stream;
 };
-var createColdStream = function (subscribeFn) {
+var createPublishStream = function (subscribeFn, replay) {
+    var isCompleted = false;
+    var lastValue = ts_option_1.None();
+    var observersMap = new Map();
+    var onNext = function (value) {
+        var e_3, _a;
+        if (isCompleted) {
+            console.warn("Logic error: Ignore call next on completed stream.");
+        }
+        else {
+            if (replay) {
+                lastValue = ts_option_1.Some(value);
+            }
+            try {
+                for (var _b = __values(observersMap.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var next = _c.value.next;
+                    next(value);
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+        }
+    };
+    var onComplete = function () {
+        var e_4, _a;
+        if (isCompleted) {
+            console.warn("Logic error: Ignore call complete on completed stream.");
+        }
+        else {
+            isCompleted = true;
+            try {
+                for (var _b = __values(observersMap.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var complete = _c.value.complete;
+                    complete();
+                }
+            }
+            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_4) throw e_4.error; }
+            }
+        }
+    };
     var subscribe = function (partialObserver) {
-        var isCompleted = false;
         var observer = exports.observerFromPartial(partialObserver);
-        return subscribeFn({
-            next: function (value) {
-                if (isCompleted) {
-                    console.warn("Logic error: Ignore call next on completed stream.");
-                }
-                else {
-                    observer.next(value);
-                }
+        if (replay && lastValue._tag === "Some") {
+            observer.next(lastValue.some);
+        }
+        if (isCompleted) {
+            observer.complete();
+            return { unsubscribe: exports.noop };
+        }
+        var subscribeId = Object.freeze({});
+        observersMap.set(subscribeId, observer);
+        return {
+            unsubscribe: function () {
+                observersMap.delete(subscribeId);
             },
-            complete: function () {
-                if (isCompleted) {
-                    console.warn("Logic error: Ignore call complete on completed stream.");
-                }
-                else {
-                    isCompleted = true;
-                    observer.complete();
-                }
-            },
-        });
+        };
     };
     var stream = {
         subscribe: subscribe,
         pipe: function (transformFn) { return transformFn(stream); },
-        behaviour: KsBehaviour.COLD,
+        behaviour: replay ? KsBehaviour.PUBLISH_REPLAY : KsBehaviour.PUBLISH,
+        disconnect: subscribeFn({ next: onNext, complete: onComplete }).unsubscribe,
     };
     return stream;
 };
@@ -155,6 +232,12 @@ exports.ksCreateStream = function (behaviour, subscribeFn) {
         }
         case KsBehaviour.SHARE_REPLAY: {
             return createShareStream(subscribeFn, true);
+        }
+        case KsBehaviour.PUBLISH: {
+            return createPublishStream(subscribeFn, false);
+        }
+        case KsBehaviour.PUBLISH_REPLAY: {
+            return createPublishStream(subscribeFn, true);
         }
     }
 };
