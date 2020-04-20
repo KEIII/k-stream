@@ -230,6 +230,22 @@ describe("KsBehaviour.PUBLISH_REPLAY", () => {
     const s = ksOf(100, KsBehaviour.PUBLISH_REPLAY);
     expect(await stackOut(s)).toEqual([100]);
   });
+
+  it("should ignore emits after complete", async () => {
+    const s = ksCreateStream<number>(
+      KsBehaviour.PUBLISH_REPLAY,
+      ({ next, complete }) => {
+        next(1);
+        complete();
+        next(2);
+        complete();
+        return { unsubscribe: noop };
+      }
+    );
+    let result = 0;
+    s.subscribe({ next: (v) => (result = v) });
+    expect(result).toBe(1);
+  });
 });
 
 it("should map to value", async () => {
