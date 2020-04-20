@@ -11,6 +11,8 @@ import {
 } from "./core";
 import { Some, None, Option } from "./ts-option";
 
+type TimeoutId = ReturnType<typeof setTimeout>;
+
 export const ksChangeBehaviour = <T>(
   newBehaviour: KsBehaviour
 ): TransformFn<T, T> => {
@@ -255,7 +257,7 @@ export const ksTakeWhile = <T>(
 export const ksDelay = <T>(delay: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      const timers = new Map<ReturnType<typeof setTimeout>, void>();
+      const timers = new Map<TimeoutId, void>();
 
       const clearTimers = () => {
         for (const t of timers.keys()) {
@@ -297,7 +299,7 @@ export const ksDelay = <T>(delay: number): TransformFn<T, T> => {
 export const ksDebounce = <T>(dueTime: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      let timeoutId: ReturnType<typeof setTimeout>;
+      let timeoutId: TimeoutId;
       let lastValue = None<T>();
 
       const tryNext = () => {
