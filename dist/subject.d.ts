@@ -1,8 +1,7 @@
-import { CompleteFn, PipeFn, SubscribePartialFn } from "./core";
-export declare type Subject<T> = {
+import { CompleteFn, Stream, SubscribePartialFn } from "./core";
+export declare type Subject<T> = Stream<T> & {
   value: T;
   readonly subscribe: SubscribePartialFn<T>;
-  readonly pipe: PipeFn<T>;
   readonly complete: CompleteFn;
   readonly isCompleted: boolean;
 };

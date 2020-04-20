@@ -8,7 +8,7 @@ var ts_result_1 = require("./ts-result");
  * Observable that immediately completes.
  */
 exports.ksEmpty = function () {
-    return core_1.ksCreateStream(0 /* COLD */, function (_a) {
+    return core_1.ksCreateStream(core_1.KsBehaviour.COLD, function (_a) {
         var complete = _a.complete;
         complete();
         return { unsubscribe: core_1.noop };

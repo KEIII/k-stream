@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = require("./core");
 exports.ksSubject = function (initValue) {
+    var behaviour = core_1.KsBehaviour.SHARE_REPLAY;
     var state = { isCompleted: false, current: initValue };
     var observer = null;
     var next = function (value) {
@@ -18,7 +19,7 @@ exports.ksSubject = function (initValue) {
             observer.complete();
         }
     };
-    var _a = core_1.ksCreateStream(2 /* SHARE_REPLAY */, function (o) {
+    var _a = core_1.ksCreateStream(behaviour, function (o) {
         observer = o;
         return { unsubscribe: function () { return (observer = null); } };
     }), subscribe = _a.subscribe, pipe = _a.pipe;
@@ -33,6 +34,7 @@ exports.ksSubject = function (initValue) {
             return subscribe(o);
         },
         pipe: pipe,
+        behaviour: behaviour,
         complete: complete,
         get isCompleted() {
             return state.isCompleted;

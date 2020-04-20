@@ -22,7 +22,7 @@ export declare type Stream<T> = Observable<T> & {
   readonly pipe: PipeFn<T>;
   readonly behaviour: KsBehaviour;
 };
-export declare const enum KsBehaviour {
+export declare enum KsBehaviour {
   COLD = 0,
   SHARE = 1,
   SHARE_REPLAY = 2,

@@ -12,6 +12,12 @@ var __values = (this && this.__values) || function(o) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_option_1 = require("./ts-option");
+var KsBehaviour;
+(function (KsBehaviour) {
+    KsBehaviour[KsBehaviour["COLD"] = 0] = "COLD";
+    KsBehaviour[KsBehaviour["SHARE"] = 1] = "SHARE";
+    KsBehaviour[KsBehaviour["SHARE_REPLAY"] = 2] = "SHARE_REPLAY";
+})(KsBehaviour = exports.KsBehaviour || (exports.KsBehaviour = {}));
 exports.noop = function () { };
 exports.observerFromPartial = function (o) {
     return {
@@ -104,7 +110,7 @@ var createShareStream = function (subscribeFn, replay) {
     var stream = {
         subscribe: subscribe,
         pipe: function (transformFn) { return transformFn(stream); },
-        behaviour: replay ? 2 /* SHARE_REPLAY */ : 1 /* SHARE */,
+        behaviour: replay ? KsBehaviour.SHARE_REPLAY : KsBehaviour.SHARE,
     };
     return stream;
 };
@@ -135,19 +141,19 @@ var createColdStream = function (subscribeFn) {
     var stream = {
         subscribe: subscribe,
         pipe: function (transformFn) { return transformFn(stream); },
-        behaviour: 0 /* COLD */,
+        behaviour: KsBehaviour.COLD,
     };
     return stream;
 };
 exports.ksCreateStream = function (behaviour, subscribeFn) {
     switch (behaviour) {
-        case 0 /* COLD */: {
+        case KsBehaviour.COLD: {
             return createColdStream(subscribeFn);
         }
-        case 1 /* SHARE */: {
+        case KsBehaviour.SHARE: {
             return createShareStream(subscribeFn, false);
         }
-        case 2 /* SHARE_REPLAY */: {
+        case KsBehaviour.SHARE_REPLAY: {
             return createShareStream(subscribeFn, true);
         }
     }
