@@ -559,6 +559,13 @@ describe("ksSubject", () => {
   it("should accept partial observer", () => {
     expect(ksSubject(0).subscribe({}).unsubscribe()).toBeUndefined();
   });
+
+  it("should emit current value after subscribe", async () => {
+    const s = ksSubject(5)
+      .pipe(ksMap((n) => n * n))
+      .pipe(ksTake(1));
+    expect(await stackOut(s)).toEqual([25]);
+  });
 });
 
 describe("ksDelay", () => {
