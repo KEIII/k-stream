@@ -4,19 +4,19 @@ import {
   ksCreateStream,
   NextFn,
   Observer,
-  PipeFn,
+  Stream,
   SubscribePartialFn,
 } from "./core";
 
-export type Subject<T> = {
+export type Subject<T> = Stream<T> & {
   value: T;
   readonly subscribe: SubscribePartialFn<T>;
-  readonly pipe: PipeFn<T>;
   readonly complete: CompleteFn;
   readonly isCompleted: boolean;
 };
 
 export const ksSubject = <T>(initValue: T): Subject<T> => {
+  const behaviour = KsBehaviour.SHARE_REPLAY;
   const state = { isCompleted: false, current: initValue };
   let observer: Observer<T> | null = null;
 
@@ -36,13 +36,10 @@ export const ksSubject = <T>(initValue: T): Subject<T> => {
     }
   };
 
-  const { subscribe, pipe } = ksCreateStream<T>(
-    KsBehaviour.SHARE_REPLAY,
-    (o) => {
-      observer = o;
-      return { unsubscribe: () => (observer = null) };
-    }
-  );
+  const { subscribe, pipe } = ksCreateStream<T>(behaviour, (o) => {
+    observer = o;
+    return { unsubscribe: () => (observer = null) };
+  });
 
   return {
     subscribe: (o) => {
@@ -55,6 +52,7 @@ export const ksSubject = <T>(initValue: T): Subject<T> => {
       return subscribe(o);
     },
     pipe,
+    behaviour,
     complete,
     get isCompleted() {
       return state.isCompleted;
