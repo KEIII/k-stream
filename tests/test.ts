@@ -9,45 +9,43 @@ import {
   tap,
 } from "rxjs/operators";
 import {
+  Err,
   KsBehaviour,
-  ksCreateStream,
-  ksPipe,
-  noop,
+  None,
+  Ok,
+  Some,
   SubscribeFn,
-} from "../src/core";
-import {
   ksChangeBehaviour,
+  ksCombineLatest,
+  ksConcat,
+  ksCreateStream,
   ksDebounce,
   ksDelay,
+  ksEmpty,
   ksFilter,
+  ksForkJoin,
+  ksFromPromise,
+  ksInterval,
   ksMap,
   ksMapTo,
+  ksMerge,
+  ksOf,
   ksPairwise,
+  ksPeriodic,
+  ksPipe,
   ksScan,
+  ksSubject,
   ksSwitch,
   ksTake,
   ksTakeUntil,
   ksTakeWhile,
   ksTap,
   ksThrottle,
-} from "../src/transformers";
-import {
-  ksCombineLatest,
-  ksConcat,
-  ksEmpty,
-  ksForkJoin,
-  ksFromPromise,
-  ksInterval,
-  ksMerge,
-  ksOf,
-  ksPeriodic,
   ksTimeout,
   ksToPromise,
   ksZip,
-} from "../src/factories";
-import { None, Some } from "../src/ts-option";
-import { Err, Ok } from "../src/ts-result";
-import { ksSubject } from "../src/subject";
+  noop,
+} from "../src";
 
 const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
   return new Promise<T[]>((resolve) => {
@@ -217,6 +215,20 @@ describe("KsBehaviour.SHARE_REPLAY", () => {
     const sb = stackOut(b);
     expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
     expect(await sb).toEqual([0, 4, 16, 36, 64, 100, 144, 196, 256, 324]);
+  });
+});
+
+describe("KsBehaviour.PUBLISH", () => {
+  it("should create stream", async () => {
+    const s = ksOf(100, KsBehaviour.PUBLISH);
+    expect(await stackOut(s)).toEqual([]);
+  });
+});
+
+describe("KsBehaviour.PUBLISH_REPLAY", () => {
+  it("should create stream", async () => {
+    const s = ksOf(100, KsBehaviour.PUBLISH_REPLAY);
+    expect(await stackOut(s)).toEqual([100]);
   });
 });
 
@@ -501,13 +513,14 @@ describe("ksSubject", () => {
 
   it("should test subject", async () => {
     const s = ksSubject(0);
-    const p = stackOut(s);
+    const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
       s.value += i;
     }
+    const b = stackOut(s);
     s.complete();
-    expect(s.isCompleted).toBeTruthy();
-    expect(await p).toEqual([0, 1, 3, 6, 10, 15, 21, 28, 36, 45]);
+    expect(await a).toEqual([0, 1, 3, 6, 10, 15, 21, 28, 36, 45]);
+    expect(await b).toEqual([45]);
     expect(await stackOut(s)).toEqual([45]);
   });
 
@@ -525,10 +538,11 @@ describe("ksSubject", () => {
 
   it("should not emit values after complete", async () => {
     const s = ksSubject(1);
+    const a = stackOut(s);
     s.complete();
     s.value = 2;
     expect(s.value).toBe(1);
-    expect(await stackOut(s)).toEqual([1]);
+    expect(await a).toEqual([1]);
   });
 
   it("should emit same values on multiple subscription", async () => {

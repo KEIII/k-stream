@@ -1,7 +1,11 @@
-import { ksPeriodic as periodic } from "../src/factories";
-import { KsBehaviour as Behaviour } from "../src/core";
-import { ksFilter as filter, ksTake as take } from "../src/transformers";
-import { Some, None } from "../src/ts-option";
+import {
+  KsBehaviour as Behaviour,
+  None,
+  Some,
+  ksFilter as filter,
+  ksPeriodic as periodic,
+  ksTake as take,
+} from "../src";
 
 const getLogOut = (fn: () => void) => {
   return new Promise((resolve) => {
