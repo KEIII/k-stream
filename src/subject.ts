@@ -5,6 +5,7 @@ import {
   NextFn,
   noop,
   Observer,
+  observerFromPartial,
   Stream,
   SubscribePartialFn,
 } from "./core";
@@ -17,22 +18,18 @@ export type Subject<T> = Stream<T> & {
 
 export const ksSubject = <T>(initValue: T): Subject<T> => {
   const state = { isCompleted: false, current: initValue };
-  let observer: Observer<T> | null = null;
+  let observer: Observer<T>;
 
   const next: NextFn<T> = (value: T) => {
     if (!state.isCompleted) {
       state.current = value;
-      if (observer !== null) {
-        observer.next(value);
-      }
+      observer.next(value);
     }
   };
 
   const complete: CompleteFn = () => {
     state.isCompleted = true;
-    if (observer !== null) {
-      observer.complete();
-    }
+    observer.complete();
   };
 
   const stream = ksCreateStream<T>(KsBehaviour.PUBLISH_REPLAY, (o) => {
@@ -44,12 +41,9 @@ export const ksSubject = <T>(initValue: T): Subject<T> => {
   return {
     subscribe: (o) => {
       if (state.isCompleted) {
-        if (o.next !== undefined) {
-          o.next(state.current);
-        }
-        if (o.complete !== undefined) {
-          o.complete();
-        }
+        const { next, complete } = observerFromPartial(o);
+        next(state.current);
+        complete();
         return { unsubscribe: noop };
       } else {
         return stream.subscribe(o);

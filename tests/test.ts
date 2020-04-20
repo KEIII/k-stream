@@ -512,7 +512,8 @@ describe("ksSubject", () => {
   });
 
   it("should test subject", async () => {
-    const s = ksSubject(0);
+    const s = ksSubject(-1);
+    s.value = 0;
     const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
       s.value += i;
