@@ -39,4 +39,6 @@ const stream = ksCreateStream<MouseEvent>(KsBehaviour.SHARE, ({ next, complete }
 ## ToDo
 - withLatestFrom
 - audit
+- repeat
+- repeatWhen
 - ...etc.
