@@ -248,10 +248,20 @@ describe("KsBehaviour.PUBLISH_REPLAY", () => {
   });
 });
 
-it("should map to value", async () => {
-  const random = Math.random();
-  const s = ksOf(0, KsBehaviour.SHARE).pipe(ksMapTo(random));
-  expect(await stackOut(s)).toEqual([random]);
+describe("ksMap", () => {
+  it("should apply projection with each value from source", async () => {
+    const random = Math.random();
+    const s = ksOf(random, KsBehaviour.SHARE).pipe(ksMap((n) => () => n));
+    expect((await stackOut(s))[0]()).toBe(random);
+  });
+});
+
+describe("ksMapTo", () => {
+  it("should map to value", async () => {
+    const random = Math.random();
+    const s = ksOf(0, KsBehaviour.SHARE).pipe(ksMapTo(random));
+    expect(await stackOut(s)).toEqual([random]);
+  });
 });
 
 it("should test tap", () => {
