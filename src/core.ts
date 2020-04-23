@@ -255,6 +255,9 @@ export const ksCreateStream = <T>(
     case KsBehaviour.PUBLISH_REPLAY: {
       return createPublishStream(subscribeFn, true);
     }
+    default: {
+      throw "unknown behaviour";
+    }
   }
 };
 

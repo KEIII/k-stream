@@ -60,6 +60,13 @@ const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
   });
 };
 
+describe("ksCreateStream", () => {
+  it("should fail on unknown behaviour", () => {
+    const f = () => ksCreateStream(1000, () => ({ unsubscribe: noop }));
+    expect(f).toThrow("unknown behaviour");
+  });
+});
+
 describe("ksFromPromise", () => {
   it("should create stream from promise and resolve", async () => {
     const random = Math.random();
