@@ -1,9 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Ok = function (ok) {
-    return Object.freeze({ _tag: "Ok", ok: ok });
+export const Ok = (ok) => {
+    return Object.freeze({ _tag: "Ok", ok });
 };
-exports.Err = function (err) {
-    return Object.freeze({ _tag: "Err", err: err });
+export const Err = (err) => {
+    return Object.freeze({ _tag: "Err", err });
 };
 //# sourceMappingURL=ts-result.js.map

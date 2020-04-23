@@ -1,50 +1,45 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var core_1 = require("./core");
-var transformers_1 = require("./transformers");
-var ts_option_1 = require("./ts-option");
-var ts_result_1 = require("./ts-result");
+import { KsBehaviour, ksCreateStream, noop, } from "./core";
+import { ksMap } from "./transformers";
+import { None, Some } from "./ts-option";
+import { Err, Ok } from "./ts-result";
 /**
  * Observable that immediately completes.
  */
-exports.ksEmpty = function () {
-    return core_1.ksCreateStream(core_1.KsBehaviour.COLD, function (_a) {
-        var complete = _a.complete;
+export const ksEmpty = () => {
+    return ksCreateStream(KsBehaviour.COLD, ({ complete }) => {
         complete();
-        return { unsubscribe: core_1.noop };
+        return { unsubscribe: noop };
     });
 };
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-exports.ksOf = function (value, behaviour) {
-    return core_1.ksCreateStream(behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
+export const ksOf = (value, behaviour) => {
+    return ksCreateStream(behaviour, ({ next, complete }) => {
         next(value);
         complete();
-        return { unsubscribe: core_1.noop };
+        return { unsubscribe: noop };
     });
 };
 /**
  * Subscribe to observables in order as previous completes.
  */
-exports.ksConcat = function (stream1, stream2) {
-    return core_1.ksCreateStream(stream1.behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var subscription1 = null;
-        var subscription2 = stream1.subscribe({
-            next: next,
-            complete: function () {
-                subscription1 = stream2.subscribe({ next: next, complete: complete });
+export const ksConcat = (stream1, stream2) => {
+    return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+        let subscription1 = null;
+        const subscription2 = stream1.subscribe({
+            next,
+            complete: () => {
+                subscription1 = stream2.subscribe({ next, complete });
             },
         });
-        var tryUnsubscribeFirst = function () {
+        const tryUnsubscribeFirst = () => {
             if (subscription1 !== null) {
                 subscription1.unsubscribe();
             }
         };
         return {
-            unsubscribe: function () {
+            unsubscribe: () => {
                 subscription2.unsubscribe();
                 tryUnsubscribeFirst();
             },
@@ -54,32 +49,31 @@ exports.ksConcat = function (stream1, stream2) {
 /**
  * Turn multiple observables into a single observable.
  */
-exports.ksMerge = function (stream1, stream2) {
-    return core_1.ksCreateStream(stream1.behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var completed1 = false;
-        var completed2 = false;
-        var tryComplete = function () {
+export const ksMerge = (stream1, stream2) => {
+    return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+        let completed1 = false;
+        let completed2 = false;
+        const tryComplete = () => {
             if (completed1 && completed2) {
                 complete();
             }
         };
-        var subscription1 = stream1.subscribe({
-            next: next,
-            complete: function () {
+        const subscription1 = stream1.subscribe({
+            next,
+            complete: () => {
                 completed1 = true;
                 tryComplete();
             },
         });
-        var subscription2 = stream2.subscribe({
-            next: next,
-            complete: function () {
+        const subscription2 = stream2.subscribe({
+            next,
+            complete: () => {
                 completed2 = true;
                 tryComplete();
             },
         });
         return {
-            unsubscribe: function () {
+            unsubscribe: () => {
                 subscription1.unsubscribe();
                 subscription2.unsubscribe();
             },
@@ -89,117 +83,113 @@ exports.ksMerge = function (stream1, stream2) {
 /**
  * After all observables emit, emit values as an array.
  */
-exports.ksZip = function (stream1, stream2) {
-    return core_1.ksCreateStream(stream1.behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var completed1 = false;
-        var completed2 = false;
-        var queue1 = [];
-        var queue2 = [];
-        var tryNext = function () {
+export const ksZip = (stream1, stream2) => {
+    return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+        let completed1 = false;
+        let completed2 = false;
+        const queue1 = [];
+        const queue2 = [];
+        const tryNext = () => {
             if (queue1.length > 0 && queue2.length > 0) {
                 next([queue1.shift(), queue2.shift()]);
             }
         };
-        var tryComplete = function () {
+        const tryComplete = () => {
             if ((completed1 && queue1.length === 0) ||
                 (completed2 && queue2.length === 0)) {
                 complete();
             }
         };
-        var subscription1 = stream1.subscribe({
-            next: function (value) {
+        const subscription1 = stream1.subscribe({
+            next: (value) => {
                 queue1.push(value);
                 tryNext();
             },
-            complete: function () {
+            complete: () => {
                 completed1 = true;
                 tryComplete();
             },
         });
-        var subscription2 = stream2.subscribe({
-            next: function (value) {
+        const subscription2 = stream2.subscribe({
+            next: (value) => {
                 queue2.push(value);
                 tryNext();
             },
-            complete: function () {
+            complete: () => {
                 completed2 = true;
                 tryComplete();
             },
         });
         return {
-            unsubscribe: function () {
+            unsubscribe: () => {
                 subscription1.unsubscribe();
                 subscription2.unsubscribe();
             },
         };
     });
 };
-exports.ksTimeout = function (ms, behaviour) {
-    return core_1.ksCreateStream(behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var handler = function () {
+export const ksTimeout = (ms, behaviour) => {
+    return ksCreateStream(behaviour, ({ next, complete }) => {
+        const handler = () => {
             next(0);
             complete();
         };
-        var timeoutId = setTimeout(handler, ms);
-        return { unsubscribe: function () { return clearInterval(timeoutId); } };
+        const timeoutId = setTimeout(handler, ms);
+        return { unsubscribe: () => clearInterval(timeoutId) };
     });
 };
-exports.ksInterval = function (ms, behaviour) {
-    return core_1.ksCreateStream(behaviour, function (_a) {
-        var next = _a.next;
-        var count = 0;
-        var handler = function () { return next(count++); };
-        var intervalId = setInterval(handler, ms);
-        return { unsubscribe: function () { return clearInterval(intervalId); } };
+export const ksInterval = (ms, behaviour) => {
+    return ksCreateStream(behaviour, ({ next }) => {
+        let count = 0;
+        const handler = () => next(count++);
+        const intervalId = setInterval(handler, ms);
+        return { unsubscribe: () => clearInterval(intervalId) };
     });
 };
-exports.ksPeriodic = function (ms, behaviour) {
-    return exports.ksConcat(exports.ksOf(0, behaviour), exports.ksInterval(ms, behaviour).pipe(transformers_1.ksMap(function (n) { return n + 1; })));
+export const ksPeriodic = (ms, behaviour) => {
+    return ksConcat(ksOf(0, behaviour), ksInterval(ms, behaviour).pipe(ksMap((n) => n + 1)));
 };
 /**
  * When any observable emits a value, emit the last emitted value from each.
  */
-exports.ksCombineLatest = function (stream1, stream2) {
-    return core_1.ksCreateStream(stream1.behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var completed1 = false;
-        var completed2 = false;
-        var value1 = ts_option_1.None();
-        var value2 = ts_option_1.None();
-        var tryNext = function () {
+export const ksCombineLatest = (stream1, stream2) => {
+    return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+        let completed1 = false;
+        let completed2 = false;
+        let value1 = None();
+        let value2 = None();
+        const tryNext = () => {
             if (value1._tag === "Some" && value2._tag === "Some") {
                 return next([value1.some, value2.some]);
             }
         };
-        var tryComplete = function () {
+        const tryComplete = () => {
             if (completed1 && completed2) {
                 complete();
             }
         };
-        var subscription1 = stream1.subscribe({
-            next: function (value) {
-                value1 = ts_option_1.Some(value);
+        const subscription1 = stream1.subscribe({
+            next: (value) => {
+                value1 = Some(value);
                 tryNext();
             },
-            complete: function () {
+            complete: () => {
                 completed1 = true;
                 tryComplete();
             },
         });
-        var subscription2 = stream2.subscribe({
-            next: function (value) {
-                value2 = ts_option_1.Some(value);
+        const subscription2 = stream2.subscribe({
+            next: (value) => {
+                value2 = Some(value);
                 tryNext();
             },
-            complete: function () {
+            complete: () => {
                 completed2 = true;
                 tryComplete();
             },
         });
         return {
-            unsubscribe: function () {
+            unsubscribe: () => {
                 subscription1.unsubscribe();
                 subscription2.unsubscribe();
             },
@@ -209,14 +199,13 @@ exports.ksCombineLatest = function (stream1, stream2) {
 /**
  * When all observables complete, emit the last emitted value from each.
  */
-exports.ksForkJoin = function (stream1, stream2) {
-    return core_1.ksCreateStream(stream1.behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var completed1 = false;
-        var completed2 = false;
-        var value1 = ts_option_1.None();
-        var value2 = ts_option_1.None();
-        var tryComplete = function () {
+export const ksForkJoin = (stream1, stream2) => {
+    return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+        let completed1 = false;
+        let completed2 = false;
+        let value1 = None();
+        let value2 = None();
+        const tryComplete = () => {
             if (completed1 &&
                 completed2 &&
                 value1._tag === "Some" &&
@@ -225,56 +214,55 @@ exports.ksForkJoin = function (stream1, stream2) {
                 complete();
             }
         };
-        var subscription1 = stream1.subscribe({
-            next: function (value) { return (value1 = ts_option_1.Some(value)); },
-            complete: function () {
+        const subscription1 = stream1.subscribe({
+            next: (value) => (value1 = Some(value)),
+            complete: () => {
                 completed1 = true;
                 tryComplete();
             },
         });
-        var subscription2 = stream2.subscribe({
-            next: function (value) { return (value2 = ts_option_1.Some(value)); },
-            complete: function () {
+        const subscription2 = stream2.subscribe({
+            next: (value) => (value2 = Some(value)),
+            complete: () => {
                 completed2 = true;
                 tryComplete();
             },
         });
         return {
-            unsubscribe: function () {
+            unsubscribe: () => {
                 subscription1.unsubscribe();
                 subscription2.unsubscribe();
             },
         };
     });
 };
-exports.ksFromPromise = function (promise, behaviour) {
-    return core_1.ksCreateStream(behaviour, function (_a) {
-        var next = _a.next, complete = _a.complete;
-        var on = true;
+export const ksFromPromise = (promise, behaviour) => {
+    return ksCreateStream(behaviour, ({ next, complete }) => {
+        let on = true;
         promise
-            .then(function (value) {
+            .then((value) => {
             if (on) {
-                next(ts_result_1.Ok(value));
+                next(Ok(value));
                 complete();
             }
         })
-            .catch(function (err) {
+            .catch((err) => {
             if (on) {
-                next(ts_result_1.Err(err));
+                next(Err(err));
                 complete();
             }
         });
-        return { unsubscribe: function () { return (on = false); } };
+        return { unsubscribe: () => (on = false) };
     });
 };
-exports.ksToPromise = function (o) {
-    return new Promise(function (resolve) {
-        var result = ts_option_1.None();
-        var s = o.subscribe({
-            next: function (value) { return (result = ts_option_1.Some(value)); },
-            complete: function () {
+export const ksToPromise = (o) => {
+    return new Promise((resolve) => {
+        let result = None();
+        const s = o.subscribe({
+            next: (value) => (result = Some(value)),
+            complete: () => {
                 resolve(result);
-                setTimeout(function () { return s.unsubscribe(); });
+                setTimeout(() => s.unsubscribe());
             },
         });
     });

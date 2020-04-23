@@ -1,38 +1,29 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var core_1 = require("./core");
-exports.ksSubject = function (initValue) {
-    var state = { isCompleted: false, current: initValue };
-    var observer = null;
-    var next = function (value) {
+import { KsBehaviour, ksCreateStream, noop, observerFromPartial, } from "./core";
+export const ksSubject = (initValue) => {
+    const state = { isCompleted: false, current: initValue };
+    let observer;
+    const next = (value) => {
         if (!state.isCompleted) {
             state.current = value;
-            if (observer !== null) {
-                observer.next(value);
-            }
+            observer.next(value);
         }
     };
-    var complete = function () {
+    const complete = () => {
         state.isCompleted = true;
-        if (observer !== null) {
-            observer.complete();
-        }
+        observer.complete();
     };
-    var stream = core_1.ksCreateStream(core_1.KsBehaviour.PUBLISH_REPLAY, function (o) {
+    const stream = ksCreateStream(KsBehaviour.PUBLISH_REPLAY, (o) => {
         observer = o;
         observer.next(initValue);
-        return { unsubscribe: core_1.noop };
+        return { unsubscribe: noop };
     });
     return {
-        subscribe: function (o) {
+        subscribe: (o) => {
             if (state.isCompleted) {
-                if (o.next !== undefined) {
-                    o.next(state.current);
-                }
-                if (o.complete !== undefined) {
-                    o.complete();
-                }
-                return { unsubscribe: core_1.noop };
+                const { next, complete } = observerFromPartial(o);
+                next(state.current);
+                complete();
+                return { unsubscribe: noop };
             }
             else {
                 return stream.subscribe(o);
@@ -40,7 +31,7 @@ exports.ksSubject = function (initValue) {
         },
         pipe: stream.pipe,
         behaviour: stream.behaviour,
-        complete: complete,
+        complete,
         set value(value) {
             next(value);
         },
