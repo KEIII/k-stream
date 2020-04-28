@@ -39,25 +39,25 @@ export const ksConcat = <T1, T2>(
   stream2: Stream<T2>
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let subscription1: Unsubscribable | null = null;
+    let subscription2: Unsubscribable | null = null;
 
-    const subscription2 = stream1.subscribe({
+    const subscription1 = stream1.subscribe({
       next,
       complete: () => {
-        subscription1 = stream2.subscribe({ next, complete });
+        subscription2 = stream2.subscribe({ next, complete });
       },
     });
 
-    const tryUnsubscribeFirst = () => {
-      if (subscription1 !== null) {
-        subscription1.unsubscribe();
+    const tryUnsubscribeSecond = () => {
+      if (subscription2 !== null) {
+        subscription2.unsubscribe();
       }
     };
 
     return {
       unsubscribe: () => {
-        subscription2.unsubscribe();
-        tryUnsubscribeFirst();
+        subscription1.unsubscribe();
+        tryUnsubscribeSecond();
       },
     };
   });
