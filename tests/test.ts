@@ -11,10 +11,6 @@ import {
 import {
   Err,
   KsBehaviour,
-  None,
-  Ok,
-  Some,
-  SubscribeFn,
   ksChangeBehaviour,
   ksCombineLatest,
   ksConcat,
@@ -44,7 +40,11 @@ import {
   ksTimeout,
   ksToPromise,
   ksZip,
+  None,
   noop,
+  Ok,
+  Some,
+  SubscribeFn,
 } from "../src";
 
 const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
@@ -252,6 +252,20 @@ describe("KsBehaviour.PUBLISH_REPLAY", () => {
     let result = 0;
     s.subscribe({ next: (v) => (result = v) });
     expect(result).toBe(1);
+  });
+});
+
+describe("ksTimeout", () => {
+  it("should clear timeout after unsubscribe", async () => {
+    const p = new Promise((resolve) => {
+      ksTimeout(0, KsBehaviour.COLD)
+        .subscribe({ next: () => resolve(0) })
+        .unsubscribe();
+      setTimeout(() => {
+        resolve(1);
+      }, 10);
+    });
+    expect(await p).toBe(1);
   });
 });
 

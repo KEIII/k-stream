@@ -174,7 +174,7 @@ export const ksTimeout = (
       complete();
     };
     const timeoutId = setTimeout(handler, ms);
-    return { unsubscribe: () => clearInterval(timeoutId) };
+    return { unsubscribe: () => clearTimeout(timeoutId) };
   });
 };
 
