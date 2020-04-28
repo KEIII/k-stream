@@ -391,6 +391,26 @@ describe("ksDebounce", () => {
 });
 
 describe("ksConcat", () => {
+  it("should unsubscribe properly", async () => {
+    const a = ksPeriodic(20, KsBehaviour.COLD)
+      .pipe(
+        ksSwitch(() => {
+          return ksConcat(
+            ksOf(0, KsBehaviour.COLD),
+            ksTimeout(100, KsBehaviour.COLD).pipe(ksMapTo(1))
+          );
+        })
+      )
+      .pipe(ksTake(50));
+    const b = timer(0, 20).pipe(
+      switchMap(() => concat(of(0), timer(100).pipe(mapTo(1)))),
+      take(50)
+    );
+    const aa = stackOut(a);
+    const bb = stackOut(b);
+    expect(await aa).toEqual(await bb);
+  });
+
   it("should unsubscribe before first stream has been completed", () => {
     const x = ksConcat(ksInterval(100, KsBehaviour.COLD), ksEmpty())
       .subscribe({})
