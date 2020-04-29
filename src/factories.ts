@@ -23,7 +23,7 @@ export const ksEmpty = <T>(): Stream<T> => {
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = <T>(value: T, behaviour: KsBehaviour): Stream<T> => {
+export const ksOf = <T>(value: T, behaviour = KsBehaviour.COLD): Stream<T> => {
   return ksCreateStream<T>(behaviour, ({ next, complete }) => {
     next(value);
     complete();
@@ -166,7 +166,7 @@ export const ksZip = <T1, T2>(
 
 export const ksTimeout = (
   ms: number,
-  behaviour: KsBehaviour
+  behaviour = KsBehaviour.COLD
 ): Stream<number> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     const handler = () => {
@@ -180,7 +180,7 @@ export const ksTimeout = (
 
 export const ksInterval = (
   ms: number,
-  behaviour: KsBehaviour
+  behaviour = KsBehaviour.COLD
 ): Stream<number> => {
   return ksCreateStream(behaviour, ({ next }) => {
     let count = 0;
@@ -192,7 +192,7 @@ export const ksInterval = (
 
 export const ksPeriodic = (
   ms: number,
-  behaviour: KsBehaviour
+  behaviour = KsBehaviour.COLD
 ): Stream<number> => {
   return ksConcat(
     ksOf(0, behaviour),
@@ -308,7 +308,7 @@ export const ksForkJoin = <T1, T2>(
 
 export const ksFromPromise = <T, E>(
   promise: Promise<T>,
-  behaviour: KsBehaviour
+  behaviour = KsBehaviour.COLD
 ): Stream<Result<T, E>> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     let on = true;

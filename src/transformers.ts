@@ -13,12 +13,8 @@ import { Some, None, Option } from "./ts-option";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-export const ksChangeBehaviour = <T>(
-  newBehaviour: KsBehaviour
-): TransformFn<T, T> => {
-  return (stream: Stream<T>): Stream<T> => {
-    return ksCreateStream(newBehaviour, stream.subscribe);
-  };
+export const ksChangeBehaviour = <T>(b: KsBehaviour): TransformFn<T, T> => {
+  return (s) => ksCreateStream(b, s.subscribe);
 };
 
 /**
