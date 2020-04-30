@@ -1,6 +1,6 @@
 import { KsBehaviour, Observer, Stream, TransformFn } from "./core";
 import { Option } from "./ts-option";
-export declare const ksChangeBehaviour: <T>(newBehaviour: KsBehaviour) => TransformFn<T, T>;
+export declare const ksChangeBehaviour: <T>(b: KsBehaviour) => TransformFn<T, T>;
 /**
  * Apply projection with each value from source.
  */

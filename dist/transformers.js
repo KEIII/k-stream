@@ -1,9 +1,7 @@
 import { ksCreateStream, observerFromPartial, } from "./core";
 import { Some, None } from "./ts-option";
-export const ksChangeBehaviour = (newBehaviour) => {
-    return (stream) => {
-        return ksCreateStream(newBehaviour, stream.subscribe);
-    };
+export const ksChangeBehaviour = (b) => {
+    return (s) => ksCreateStream(b, s.subscribe);
 };
 /**
  * Apply projection with each value from source.

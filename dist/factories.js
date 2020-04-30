@@ -14,7 +14,7 @@ export const ksEmpty = () => {
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = (value, behaviour) => {
+export const ksOf = (value, behaviour = KsBehaviour.COLD) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         next(value);
         complete();
@@ -26,22 +26,22 @@ export const ksOf = (value, behaviour) => {
  */
 export const ksConcat = (stream1, stream2) => {
     return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-        let subscription1 = null;
-        const subscription2 = stream1.subscribe({
+        let subscription2 = null;
+        const subscription1 = stream1.subscribe({
             next,
             complete: () => {
-                subscription1 = stream2.subscribe({ next, complete });
+                subscription2 = stream2.subscribe({ next, complete });
             },
         });
-        const tryUnsubscribeFirst = () => {
-            if (subscription1 !== null) {
-                subscription1.unsubscribe();
+        const tryUnsubscribeSecond = () => {
+            if (subscription2 !== null) {
+                subscription2.unsubscribe();
             }
         };
         return {
             unsubscribe: () => {
-                subscription2.unsubscribe();
-                tryUnsubscribeFirst();
+                subscription1.unsubscribe();
+                tryUnsubscribeSecond();
             },
         };
     });
@@ -128,17 +128,17 @@ export const ksZip = (stream1, stream2) => {
         };
     });
 };
-export const ksTimeout = (ms, behaviour) => {
+export const ksTimeout = (ms, behaviour = KsBehaviour.COLD) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         const handler = () => {
             next(0);
             complete();
         };
         const timeoutId = setTimeout(handler, ms);
-        return { unsubscribe: () => clearInterval(timeoutId) };
+        return { unsubscribe: () => clearTimeout(timeoutId) };
     });
 };
-export const ksInterval = (ms, behaviour) => {
+export const ksInterval = (ms, behaviour = KsBehaviour.COLD) => {
     return ksCreateStream(behaviour, ({ next }) => {
         let count = 0;
         const handler = () => next(count++);
@@ -146,7 +146,7 @@ export const ksInterval = (ms, behaviour) => {
         return { unsubscribe: () => clearInterval(intervalId) };
     });
 };
-export const ksPeriodic = (ms, behaviour) => {
+export const ksPeriodic = (ms, behaviour = KsBehaviour.COLD) => {
     return ksConcat(ksOf(0, behaviour), ksInterval(ms, behaviour).pipe(ksMap((n) => n + 1)));
 };
 /**
@@ -236,7 +236,7 @@ export const ksForkJoin = (stream1, stream2) => {
         };
     });
 };
-export const ksFromPromise = (promise, behaviour) => {
+export const ksFromPromise = (promise, behaviour = KsBehaviour.COLD) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         let on = true;
         promise
