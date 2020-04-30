@@ -1,4 +1,4 @@
-import { Some, None } from "./ts-option";
+import { Some, None } from './ts-option';
 
 export type Unsubscribable = { readonly unsubscribe: () => void };
 
@@ -14,7 +14,7 @@ export type Observer<T> = {
 export type SubscribeFn<T> = (observer: Observer<T>) => Unsubscribable;
 
 export type SubscribePartialFn<T> = (
-  partialObserver: Partial<Observer<T>>
+  partialObserver: Partial<Observer<T>>,
 ) => Unsubscribable;
 
 export type TransformFn<T, O> = (stream: Stream<T>) => Stream<O>;
@@ -42,7 +42,7 @@ type UUID = Readonly<{}>;
 export const noop = () => {};
 
 export const observerFromPartial = <T>(
-  o: Partial<Observer<T>>
+  o: Partial<Observer<T>>,
 ): Observer<T> => {
   return {
     next: o.next !== undefined ? o.next : noop,
@@ -52,14 +52,14 @@ export const observerFromPartial = <T>(
 
 const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
   const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>
+    partialObserver: Partial<Observer<T>>,
   ): Unsubscribable => {
     let isCompleted = false;
     const observer = observerFromPartial(partialObserver);
     return subscribeFn({
-      next: (value) => {
+      next: value => {
         if (isCompleted) {
-          console.warn("Logic error: Ignore call next on completed stream.");
+          console.warn('Logic error: Ignore call next on completed stream.');
         } else {
           observer.next(value);
         }
@@ -67,7 +67,7 @@ const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
       complete: () => {
         if (isCompleted) {
           console.warn(
-            "Logic error: Ignore call complete on completed stream."
+            'Logic error: Ignore call complete on completed stream.',
           );
         } else {
           isCompleted = true;
@@ -79,7 +79,7 @@ const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
 
   const stream: Stream<T> = {
     subscribe,
-    pipe: (transformFn) => transformFn(stream),
+    pipe: transformFn => transformFn(stream),
     behaviour: KsBehaviour.COLD,
   };
 
@@ -88,7 +88,7 @@ const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
 
 const createShareStream = <T>(
   subscribeFn: SubscribeFn<T>,
-  replay: boolean
+  replay: boolean,
 ): Stream<T> => {
   let isCompleted = false;
   let lastValue = None<T>();
@@ -97,7 +97,7 @@ const createShareStream = <T>(
 
   const onNext: NextFn<T> = (value: T): void => {
     if (isCompleted) {
-      console.warn("Logic error: Ignore call next on completed stream.");
+      console.warn('Logic error: Ignore call next on completed stream.');
     } else {
       if (replay) {
         lastValue = Some(value);
@@ -110,7 +110,7 @@ const createShareStream = <T>(
 
   const onComplete: CompleteFn = (): void => {
     if (isCompleted) {
-      console.warn("Logic error: Ignore call complete on completed stream.");
+      console.warn('Logic error: Ignore call complete on completed stream.');
     } else {
       isCompleted = true;
       for (const { complete } of observersMap.values()) {
@@ -120,7 +120,7 @@ const createShareStream = <T>(
   };
 
   const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>
+    partialObserver: Partial<Observer<T>>,
   ): Unsubscribable => {
     if (isCompleted) {
       return { unsubscribe: noop };
@@ -128,7 +128,7 @@ const createShareStream = <T>(
 
     const observer = observerFromPartial<T>(partialObserver);
 
-    if (replay && lastValue._tag === "Some") {
+    if (replay && lastValue._tag === 'Some') {
       observer.next(lastValue.some);
     }
 
@@ -162,7 +162,7 @@ const createShareStream = <T>(
 
   const stream: Stream<T> = {
     subscribe,
-    pipe: (transformFn) => transformFn(stream),
+    pipe: transformFn => transformFn(stream),
     behaviour: replay ? KsBehaviour.SHARE_REPLAY : KsBehaviour.SHARE,
   };
 
@@ -171,7 +171,7 @@ const createShareStream = <T>(
 
 const createPublishStream = <T>(
   subscribeFn: SubscribeFn<T>,
-  replay: boolean
+  replay: boolean,
 ): Stream<T> => {
   let isCompleted = false;
   let lastValue = None<T>();
@@ -179,7 +179,7 @@ const createPublishStream = <T>(
 
   const onNext: NextFn<T> = (value: T): void => {
     if (isCompleted) {
-      console.warn("Logic error: Ignore call next on completed stream.");
+      console.warn('Logic error: Ignore call next on completed stream.');
     } else {
       if (replay) {
         lastValue = Some(value);
@@ -192,7 +192,7 @@ const createPublishStream = <T>(
 
   const onComplete: CompleteFn = (): void => {
     if (isCompleted) {
-      console.warn("Logic error: Ignore call complete on completed stream.");
+      console.warn('Logic error: Ignore call complete on completed stream.');
     } else {
       isCompleted = true;
       for (const { complete } of observersMap.values()) {
@@ -202,11 +202,11 @@ const createPublishStream = <T>(
   };
 
   const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>
+    partialObserver: Partial<Observer<T>>,
   ): Unsubscribable => {
     const observer = observerFromPartial<T>(partialObserver);
 
-    if (replay && lastValue._tag === "Some") {
+    if (replay && lastValue._tag === 'Some') {
       observer.next(lastValue.some);
     }
 
@@ -227,7 +227,7 @@ const createPublishStream = <T>(
 
   const stream: Stream<T> = {
     subscribe,
-    pipe: (transformFn) => transformFn(stream),
+    pipe: transformFn => transformFn(stream),
     behaviour: replay ? KsBehaviour.PUBLISH_REPLAY : KsBehaviour.PUBLISH,
     disconnect: subscribeFn({ next: onNext, complete: onComplete }).unsubscribe,
   };
@@ -237,7 +237,7 @@ const createPublishStream = <T>(
 
 export const ksCreateStream = <T>(
   behaviour: KsBehaviour,
-  subscribeFn: SubscribeFn<T>
+  subscribeFn: SubscribeFn<T>,
 ): Stream<T> => {
   switch (behaviour) {
     case KsBehaviour.COLD: {
@@ -256,7 +256,7 @@ export const ksCreateStream = <T>(
       return createPublishStream(subscribeFn, true);
     }
     default: {
-      throw "unknown behaviour";
+      throw 'unknown behaviour';
     }
   }
 };
@@ -266,7 +266,7 @@ export const ksCreateStream = <T>(
  */
 export const ksPipe = <A, B, C>(
   t1: TransformFn<A, B>,
-  t2: TransformFn<B, C>
+  t2: TransformFn<B, C>,
 ): TransformFn<A, C> => {
   return (s: Stream<A>): Stream<C> => s.pipe(t1).pipe(t2);
 };

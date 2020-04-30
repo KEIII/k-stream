@@ -5,10 +5,10 @@ import {
   Observable,
   Stream,
   Unsubscribable,
-} from "./core";
-import { ksMap } from "./transformers";
-import { None, Option, Some } from "./ts-option";
-import { Err, Ok, Result } from "./ts-result";
+} from './core';
+import { ksMap } from './transformers';
+import { None, Option, Some } from './ts-option';
+import { Err, Ok, Result } from './ts-result';
 
 /**
  * Observable that immediately completes.
@@ -36,7 +36,7 @@ export const ksOf = <T>(value: T, behaviour = KsBehaviour.COLD): Stream<T> => {
  */
 export const ksConcat = <T1, T2>(
   stream1: Stream<T1>,
-  stream2: Stream<T2>
+  stream2: Stream<T2>,
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let subscription2: Unsubscribable | null = null;
@@ -68,7 +68,7 @@ export const ksConcat = <T1, T2>(
  */
 export const ksMerge = <T1, T2>(
   stream1: Stream<T1>,
-  stream2: Stream<T2>
+  stream2: Stream<T2>,
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
@@ -110,7 +110,7 @@ export const ksMerge = <T1, T2>(
  */
 export const ksZip = <T1, T2>(
   stream1: Stream<T1>,
-  stream2: Stream<T2>
+  stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
@@ -134,7 +134,7 @@ export const ksZip = <T1, T2>(
     };
 
     const subscription1 = stream1.subscribe({
-      next: (value) => {
+      next: value => {
         queue1.push(value);
         tryNext();
       },
@@ -145,7 +145,7 @@ export const ksZip = <T1, T2>(
     });
 
     const subscription2 = stream2.subscribe({
-      next: (value) => {
+      next: value => {
         queue2.push(value);
         tryNext();
       },
@@ -166,7 +166,7 @@ export const ksZip = <T1, T2>(
 
 export const ksTimeout = (
   ms: number,
-  behaviour = KsBehaviour.COLD
+  behaviour = KsBehaviour.COLD,
 ): Stream<number> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     const handler = () => {
@@ -180,7 +180,7 @@ export const ksTimeout = (
 
 export const ksInterval = (
   ms: number,
-  behaviour = KsBehaviour.COLD
+  behaviour = KsBehaviour.COLD,
 ): Stream<number> => {
   return ksCreateStream(behaviour, ({ next }) => {
     let count = 0;
@@ -192,11 +192,11 @@ export const ksInterval = (
 
 export const ksPeriodic = (
   ms: number,
-  behaviour = KsBehaviour.COLD
+  behaviour = KsBehaviour.COLD,
 ): Stream<number> => {
   return ksConcat(
     ksOf(0, behaviour),
-    ksInterval(ms, behaviour).pipe(ksMap((n) => n + 1))
+    ksInterval(ms, behaviour).pipe(ksMap(n => n + 1)),
   );
 };
 
@@ -205,7 +205,7 @@ export const ksPeriodic = (
  */
 export const ksCombineLatest = <T1, T2>(
   stream1: Stream<T1>,
-  stream2: Stream<T2>
+  stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
@@ -214,7 +214,7 @@ export const ksCombineLatest = <T1, T2>(
     let value2 = None<T2>();
 
     const tryNext = () => {
-      if (value1._tag === "Some" && value2._tag === "Some") {
+      if (value1._tag === 'Some' && value2._tag === 'Some') {
         return next([value1.some, value2.some]);
       }
     };
@@ -226,7 +226,7 @@ export const ksCombineLatest = <T1, T2>(
     };
 
     const subscription1 = stream1.subscribe({
-      next: (value) => {
+      next: value => {
         value1 = Some(value);
         tryNext();
       },
@@ -237,7 +237,7 @@ export const ksCombineLatest = <T1, T2>(
     });
 
     const subscription2 = stream2.subscribe({
-      next: (value) => {
+      next: value => {
         value2 = Some(value);
         tryNext();
       },
@@ -261,7 +261,7 @@ export const ksCombineLatest = <T1, T2>(
  */
 export const ksForkJoin = <T1, T2>(
   stream1: Stream<T1>,
-  stream2: Stream<T2>
+  stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
@@ -273,8 +273,8 @@ export const ksForkJoin = <T1, T2>(
       if (
         completed1 &&
         completed2 &&
-        value1._tag === "Some" &&
-        value2._tag === "Some"
+        value1._tag === 'Some' &&
+        value2._tag === 'Some'
       ) {
         next([value1.some, value2.some]);
         complete();
@@ -282,7 +282,7 @@ export const ksForkJoin = <T1, T2>(
     };
 
     const subscription1 = stream1.subscribe({
-      next: (value) => (value1 = Some(value)),
+      next: value => (value1 = Some(value)),
       complete: () => {
         completed1 = true;
         tryComplete();
@@ -290,7 +290,7 @@ export const ksForkJoin = <T1, T2>(
     });
 
     const subscription2 = stream2.subscribe({
-      next: (value) => (value2 = Some(value)),
+      next: value => (value2 = Some(value)),
       complete: () => {
         completed2 = true;
         tryComplete();
@@ -308,12 +308,12 @@ export const ksForkJoin = <T1, T2>(
 
 export const ksFromPromise = <T, E>(
   promise: Promise<T>,
-  behaviour = KsBehaviour.COLD
+  behaviour = KsBehaviour.COLD,
 ): Stream<Result<T, E>> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     let on = true;
     promise
-      .then((value) => {
+      .then(value => {
         if (on) {
           next(Ok(value));
           complete();
@@ -330,10 +330,10 @@ export const ksFromPromise = <T, E>(
 };
 
 export const ksToPromise = <T>(o: Observable<T>): Promise<Option<T>> => {
-  return new Promise<Option<T>>((resolve) => {
+  return new Promise<Option<T>>(resolve => {
     let result = None<T>();
     const s = o.subscribe({
-      next: (value) => (result = Some(value)),
+      next: value => (result = Some(value)),
       complete: () => {
         resolve(result);
         setTimeout(() => s.unsubscribe());

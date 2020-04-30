@@ -8,7 +8,7 @@ import {
   observerFromPartial,
   Stream,
   SubscribePartialFn,
-} from "./core";
+} from './core';
 
 export type Subject<T> = Stream<T> & {
   value: T;
@@ -32,14 +32,14 @@ export const ksSubject = <T>(initValue: T): Subject<T> => {
     observer.complete();
   };
 
-  const stream = ksCreateStream<T>(KsBehaviour.PUBLISH_REPLAY, (o) => {
+  const stream = ksCreateStream<T>(KsBehaviour.PUBLISH_REPLAY, o => {
     observer = o;
     observer.next(initValue);
     return { unsubscribe: noop };
   });
 
   return {
-    subscribe: (o) => {
+    subscribe: o => {
       if (state.isCompleted) {
         const { next, complete } = observerFromPartial(o);
         next(state.current);

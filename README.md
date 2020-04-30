@@ -14,7 +14,7 @@ npm i @keiii/k-stream
 import { ksPeriodic as periodic, KsBehaviour as Behaviour, ksFilter as filter, ksTake as take, Some, None } from "@keiii/k-stream";
 
 const stream = periodic(100, Behaviour.SHARE_REPLAY)
-  .pipe(filter((n) => (n % 2 === 0 ? Some(n) : None<typeof n>())))
+  .pipe(filter(n => n % 2 === 0 ? Some(n) : None<typeof n>()))
   .pipe(take(10));
 
 stream.subscribe({

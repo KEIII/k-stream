@@ -1,4 +1,4 @@
-import { combineLatest, concat, forkJoin, merge, of, timer } from "rxjs";
+import { combineLatest, concat, forkJoin, merge, of, timer } from 'rxjs';
 import {
   map,
   mapTo,
@@ -7,7 +7,7 @@ import {
   take,
   takeUntil,
   tap,
-} from "rxjs/operators";
+} from 'rxjs/operators';
 import {
   Err,
   KsBehaviour,
@@ -45,13 +45,13 @@ import {
   Ok,
   Some,
   SubscribeFn,
-} from "../src";
+} from '../src';
 
 const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
-  return new Promise<T[]>((resolve) => {
+  return new Promise<T[]>(resolve => {
     const output: T[] = [];
     const subscription = o.subscribe({
-      next: (v) => output.push(v),
+      next: v => output.push(v),
       complete: () => {
         resolve(output);
         setTimeout(() => subscription.unsubscribe());
@@ -60,31 +60,31 @@ const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
   });
 };
 
-describe("ksCreateStream", () => {
-  it("should fail on unknown behaviour", () => {
+describe('ksCreateStream', () => {
+  it('should fail on unknown behaviour', () => {
     const f = () => ksCreateStream(1000, () => ({ unsubscribe: noop }));
-    expect(f).toThrow("unknown behaviour");
+    expect(f).toThrow('unknown behaviour');
   });
 });
 
-describe("ksFromPromise", () => {
-  it("should create stream from promise and resolve", async () => {
+describe('ksFromPromise', () => {
+  it('should create stream from promise and resolve', async () => {
     const random = Math.random();
     const out = await stackOut(
-      ksFromPromise<number, unknown>(Promise.resolve(random))
+      ksFromPromise<number, unknown>(Promise.resolve(random)),
     );
     expect(out).toEqual([Ok(random)]);
   });
 
-  it("should create stream from promise and reject", async () => {
+  it('should create stream from promise and reject', async () => {
     const random = Math.random();
     const out = await stackOut(
-      ksFromPromise<number, unknown>(Promise.reject(random))
+      ksFromPromise<number, unknown>(Promise.reject(random)),
     );
     expect(out).toEqual([Err(random)]);
   });
 
-  it("should ignore resolved result after unsubscribe", async () => {
+  it('should ignore resolved result after unsubscribe', async () => {
     const stream = ksFromPromise(Promise.resolve());
     const promise = ksToPromise(stream);
     let x = 0;
@@ -93,7 +93,7 @@ describe("ksFromPromise", () => {
     expect(x).toBe(0);
   });
 
-  it("should ignore rejected result after unsubscribe", async () => {
+  it('should ignore rejected result after unsubscribe', async () => {
     const stream = ksFromPromise(Promise.reject());
     const promise = ksToPromise(stream);
     let x = 0;
@@ -103,16 +103,16 @@ describe("ksFromPromise", () => {
   });
 });
 
-describe("ksToPromise", () => {
-  it("should create promise from stream", async () => {
+describe('ksToPromise', () => {
+  it('should create promise from stream', async () => {
     const random = Math.random();
     const promise = ksToPromise(ksOf(random));
     expect(await promise).toEqual(Some(random));
   });
 });
 
-describe("KsBehaviour.COLD", () => {
-  it("should ignore emits after complete", async () => {
+describe('KsBehaviour.COLD', () => {
+  it('should ignore emits after complete', async () => {
     const s = ksCreateStream<number>(KsBehaviour.COLD, ({ next, complete }) => {
       next(1);
       complete();
@@ -121,11 +121,11 @@ describe("KsBehaviour.COLD", () => {
       return { unsubscribe: noop };
     });
     let result = 0;
-    s.subscribe({ next: (v) => (result = v) });
+    s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
   });
 
-  it("should emit different values", async () => {
+  it('should emit different values', async () => {
     const numbers = [1, 2];
     const s = ksTimeout(0).pipe(ksMap(() => numbers.pop()));
     const a = stackOut(s);
@@ -134,13 +134,13 @@ describe("KsBehaviour.COLD", () => {
   });
 });
 
-describe("KsBehaviour.SHARE", () => {
-  it("should create share stream", async () => {
+describe('KsBehaviour.SHARE', () => {
+  it('should create share stream', async () => {
     const s = ksOf(1, KsBehaviour.SHARE);
     expect(await stackOut(s)).toEqual([1]);
   });
 
-  it("should ignore emits after complete", async () => {
+  it('should ignore emits after complete', async () => {
     const s = ksCreateStream<number>(
       KsBehaviour.SHARE,
       ({ next, complete }) => {
@@ -149,14 +149,14 @@ describe("KsBehaviour.SHARE", () => {
         next(2);
         complete();
         return { unsubscribe: noop };
-      }
+      },
     );
     let result = 0;
-    s.subscribe({ next: (v) => (result = v) });
+    s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
   });
 
-  it("should not emit after second subscribe", async () => {
+  it('should not emit after second subscribe', async () => {
     const s = ksOf(1, KsBehaviour.SHARE);
     let emitted = false;
     const s1 = s.subscribe({});
@@ -166,7 +166,7 @@ describe("KsBehaviour.SHARE", () => {
     expect(emitted).toBeFalsy();
   });
 
-  it("should emit same values", async () => {
+  it('should emit same values', async () => {
     const numbers = [1, 2];
     const s = ksTimeout(0, KsBehaviour.SHARE).pipe(ksMap(() => numbers.pop()));
     const subscription = s.subscribe({});
@@ -176,10 +176,10 @@ describe("KsBehaviour.SHARE", () => {
     expect(await a).toEqual(await b);
   });
 
-  it("should not replay last value", async () => {
+  it('should not replay last value', async () => {
     const stream = ksInterval(100, KsBehaviour.SHARE);
     const sub = stream.subscribe({});
-    const p = new Promise((resolve) => {
+    const p = new Promise(resolve => {
       setTimeout(() => {
         stream.pipe(ksTake(1)).subscribe({ next: resolve });
         sub.unsubscribe();
@@ -188,11 +188,11 @@ describe("KsBehaviour.SHARE", () => {
     expect(await p).toEqual(9);
   });
 
-  it("should not affect original stream", async () => {
+  it('should not affect original stream', async () => {
     const a = ksPeriodic(100, KsBehaviour.SHARE)
-      .pipe(ksMap((n) => n + n))
+      .pipe(ksMap(n => n + n))
       .pipe(ksTake(10));
-    const b = a.pipe(ksMap((n) => n * n));
+    const b = a.pipe(ksMap(n => n * n));
     const sa = stackOut(a);
     const sb = stackOut(b);
     expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
@@ -200,11 +200,11 @@ describe("KsBehaviour.SHARE", () => {
   });
 });
 
-describe("KsBehaviour.SHARE_REPLAY", () => {
-  it("should replay last value", async () => {
+describe('KsBehaviour.SHARE_REPLAY', () => {
+  it('should replay last value', async () => {
     const stream = ksInterval(100, KsBehaviour.SHARE_REPLAY);
     const sub = stream.subscribe({});
-    const p = new Promise((resolve) => {
+    const p = new Promise(resolve => {
       setTimeout(() => {
         stream.pipe(ksTake(1)).subscribe({ next: resolve });
         sub.unsubscribe();
@@ -213,11 +213,11 @@ describe("KsBehaviour.SHARE_REPLAY", () => {
     expect(await p).toEqual(8);
   });
 
-  it("should not affect original stream", async () => {
+  it('should not affect original stream', async () => {
     const a = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
-      .pipe(ksMap((n) => n + n))
+      .pipe(ksMap(n => n + n))
       .pipe(ksTake(10));
-    const b = a.pipe(ksMap((n) => n * n));
+    const b = a.pipe(ksMap(n => n * n));
     const sa = stackOut(a);
     const sb = stackOut(b);
     expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
@@ -225,20 +225,20 @@ describe("KsBehaviour.SHARE_REPLAY", () => {
   });
 });
 
-describe("KsBehaviour.PUBLISH", () => {
-  it("should create stream", async () => {
+describe('KsBehaviour.PUBLISH', () => {
+  it('should create stream', async () => {
     const s = ksOf(100, KsBehaviour.PUBLISH);
     expect(await stackOut(s)).toEqual([]);
   });
 });
 
-describe("KsBehaviour.PUBLISH_REPLAY", () => {
-  it("should create stream", async () => {
+describe('KsBehaviour.PUBLISH_REPLAY', () => {
+  it('should create stream', async () => {
     const s = ksOf(100, KsBehaviour.PUBLISH_REPLAY);
     expect(await stackOut(s)).toEqual([100]);
   });
 
-  it("should ignore emits after complete", async () => {
+  it('should ignore emits after complete', async () => {
     const s = ksCreateStream<number>(
       KsBehaviour.PUBLISH_REPLAY,
       ({ next, complete }) => {
@@ -247,17 +247,17 @@ describe("KsBehaviour.PUBLISH_REPLAY", () => {
         next(2);
         complete();
         return { unsubscribe: noop };
-      }
+      },
     );
     let result = 0;
-    s.subscribe({ next: (v) => (result = v) });
+    s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
   });
 });
 
-describe("ksTimeout", () => {
-  it("should clear timeout after unsubscribe", async () => {
-    const p = new Promise((resolve) => {
+describe('ksTimeout', () => {
+  it('should clear timeout after unsubscribe', async () => {
+    const p = new Promise(resolve => {
       ksTimeout(0)
         .subscribe({ next: () => resolve(0) })
         .unsubscribe();
@@ -269,38 +269,38 @@ describe("ksTimeout", () => {
   });
 });
 
-describe("ksMap", () => {
-  it("should apply projection with each value from source", async () => {
+describe('ksMap', () => {
+  it('should apply projection with each value from source', async () => {
     const random = Math.random();
-    const s = ksOf(random, KsBehaviour.SHARE).pipe(ksMap((n) => () => n));
+    const s = ksOf(random, KsBehaviour.SHARE).pipe(ksMap(n => () => n));
     expect((await stackOut(s))[0]()).toBe(random);
   });
 });
 
-describe("ksMapTo", () => {
-  it("should map to value", async () => {
+describe('ksMapTo', () => {
+  it('should map to value', async () => {
     const random = Math.random();
     const s = ksOf(0, KsBehaviour.SHARE).pipe(ksMapTo(random));
     expect(await stackOut(s)).toEqual([random]);
   });
 });
 
-it("should test tap", () => {
+it('should test tap', () => {
   const r = { v: 0, c: false };
   const s = ksOf(1).pipe(
-    ksTap({ next: (v) => (r.v = v), complete: () => (r.c = true) })
+    ksTap({ next: v => (r.v = v), complete: () => (r.c = true) }),
   );
   s.subscribe({}).unsubscribe();
   expect(r).toEqual({ v: 1, c: true });
 });
 
-it("should complete after pipe", async () => {
+it('should complete after pipe', async () => {
   const random = Math.random();
   const s = stackOut(ksOf(0, KsBehaviour.SHARE).pipe(ksMap(() => random)));
   expect(await s).toEqual(await s);
 });
 
-it("should change behaviour", async () => {
+it('should change behaviour', async () => {
   const numbers = [1, 2];
   const s = ksTimeout(0)
     .pipe(ksChangeBehaviour(KsBehaviour.SHARE))
@@ -310,55 +310,58 @@ it("should change behaviour", async () => {
   expect(await a).toEqual(await b);
 });
 
-it("should filter skip odd (i.e emit only even)", async () => {
+it('should filter skip odd (i.e emit only even)', async () => {
   const out = await stackOut(
     ksPeriodic(0)
       .pipe(
-        ksFilter((n) => {
+        ksFilter(n => {
           return !(n & 1) ? Some(n) : None<typeof n>();
-        })
+        }),
       )
-      .pipe(ksTake(10))
+      .pipe(ksTake(10)),
   );
   expect(out).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
 });
 
-it("should test periodic", async () => {
+it('should test periodic', async () => {
   const out = await stackOut(ksPeriodic(0).pipe(ksTake(10)));
   expect(out).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 });
 
-it("should create timeout", async () => {
+it('should create timeout', async () => {
   const out = await stackOut(ksTimeout(1).pipe(ksTake(3)));
   expect(out).toEqual([0]);
 });
 
-it("should test forkJoin", async () => {
+it('should test forkJoin', async () => {
   const outA = stackOut(
-    ksForkJoin(ksPeriodic(1).pipe(ksTake(100)), ksPeriodic(10).pipe(ksTake(10)))
+    ksForkJoin(
+      ksPeriodic(1).pipe(ksTake(100)),
+      ksPeriodic(10).pipe(ksTake(10)),
+    ),
   );
 
   const outB = stackOut<any>(
-    forkJoin([timer(0, 1).pipe(take(100)), timer(0, 10).pipe(take(10))])
+    forkJoin([timer(0, 1).pipe(take(100)), timer(0, 10).pipe(take(10))]),
   );
 
   expect(await outA).toEqual(await outB);
 });
 
-describe("ksCombineLatest", () => {
-  it("should combine latest", async () => {
+describe('ksCombineLatest', () => {
+  it('should combine latest', async () => {
     const limit = 100;
     const ms = 5;
     const s = ksPeriodic(ms).pipe(ksTake(limit));
     const r = timer(0, ms).pipe(take(limit));
     expect(await stackOut(ksCombineLatest(s, s))).toEqual(
-      await stackOut(combineLatest([r, r]))
+      await stackOut(combineLatest([r, r])),
     );
   });
 });
 
-describe("ksThrottle", () => {
-  it("should test throttling", async () => {
+describe('ksThrottle', () => {
+  it('should test throttling', async () => {
     const limit = 7;
     const ms = 250;
     const max = 600;
@@ -368,54 +371,54 @@ describe("ksThrottle", () => {
     expect(await stackOut(s)).toEqual([0, 3, 6, 9, 12, 15, 18]);
   });
 
-  it("should main complete before throttle time", async () => {
+  it('should main complete before throttle time', async () => {
     const random = Math.random();
     const s = ksOf(random).pipe(ksThrottle(100));
     expect(await stackOut(s)).toEqual([random]);
   });
 });
 
-describe("ksDebounce", () => {
-  it("should test debounce", async () => {
+describe('ksDebounce', () => {
+  it('should test debounce', async () => {
     const s = ksPeriodic(10).pipe(ksTake(100)).pipe(ksDebounce(1000));
 
     expect(await stackOut(s)).toEqual([99]);
   });
 });
 
-describe("ksConcat", () => {
-  it("should unsubscribe properly", async () => {
+describe('ksConcat', () => {
+  it('should unsubscribe properly', async () => {
     const a = ksPeriodic(20)
       .pipe(
         ksSwitch(() => {
           return ksConcat(ksOf(0), ksTimeout(100).pipe(ksMapTo(1)));
-        })
+        }),
       )
       .pipe(ksTake(50));
     const b = timer(0, 20).pipe(
       switchMap(() => concat(of(0), timer(100).pipe(mapTo(1)))),
-      take(50)
+      take(50),
     );
     const aa = stackOut(a);
     const bb = stackOut(b);
     expect(await aa).toEqual(await bb);
   });
 
-  it("should unsubscribe before first stream has been completed", () => {
+  it('should unsubscribe before first stream has been completed', () => {
     const x = ksConcat(ksInterval(100), ksEmpty()).subscribe({}).unsubscribe();
     expect(x).toBeUndefined();
   });
 });
 
-describe("ksMerge", () => {
-  it("should unsubscribe", () => {
+describe('ksMerge', () => {
+  it('should unsubscribe', () => {
     const x = ksMerge(ksEmpty(), ksEmpty()).subscribe({}).unsubscribe();
     expect(x).toBeUndefined();
   });
 });
 
-describe("ksSwitch", () => {
-  it("should test switch", async () => {
+describe('ksSwitch', () => {
+  it('should test switch', async () => {
     const project = (n: number) => {
       return ksConcat(ksOf(n), ksOf(n));
     };
@@ -423,34 +426,34 @@ describe("ksSwitch", () => {
     expect(await stackOut(s)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
   });
 
-  it("should work like RxJS", async () => {
+  it('should work like RxJS', async () => {
     const a = ksTimeout(0).pipe(ksSwitch(() => ksPeriodic(0).pipe(ksTake(10))));
     const b = timer(0).pipe(switchMap(() => timer(0, 0).pipe(take(10))));
     expect(await stackOut(a)).toEqual(await stackOut(b));
   });
 
-  it("should unsubscribe before project emits", async () => {
+  it('should unsubscribe before project emits', async () => {
     const s = ksOf(0).pipe(ksSwitch(ksEmpty));
     expect(await stackOut(s)).toEqual([]);
   });
 });
 
-describe("ksTakeUntil", () => {
-  it("should complete main stream before notifier emits", async () => {
+describe('ksTakeUntil', () => {
+  it('should complete main stream before notifier emits', async () => {
     const random = Math.random();
     const s = ksOf(random).pipe(ksTakeUntil(ksTimeout(1000)));
     expect(await stackOut(s)).toEqual([random]);
   });
 
-  it("should complete main stream after notifier emits", async () => {
+  it('should complete main stream after notifier emits', async () => {
     const stop = ksTimeout(2000);
     const s = ksPeriodic(100).pipe(ksTakeUntil(stop));
     expect((await stackOut(s)).pop()).toBe(19);
   });
 
-  it("should test notifier could emit multiple times", async () => {
+  it('should test notifier could emit multiple times', async () => {
     const stop = ksTimeout(2000, KsBehaviour.SHARE).pipe(
-      ksSwitch(() => ksPeriodic(50, KsBehaviour.SHARE).pipe(ksTake(10)))
+      ksSwitch(() => ksPeriodic(50, KsBehaviour.SHARE).pipe(ksTake(10))),
     );
     const a = stackOut(ksPeriodic(50).pipe(ksTakeUntil(stop)));
     const b = stackOut(stop);
@@ -458,17 +461,17 @@ describe("ksTakeUntil", () => {
     expect(await b).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
-  it("should properly unsubscribe", async () => {
+  it('should properly unsubscribe', async () => {
     const s = ksOf(0).pipe(ksTakeUntil(ksOf(0)));
     expect(await stackOut(s)).toEqual([0]);
   });
 
-  it("should completes on empty", async () => {
+  it('should completes on empty', async () => {
     const s = ksInterval(1).pipe(ksTakeUntil(ksEmpty()));
     expect(await stackOut(s)).toEqual([]);
   });
 
-  it("should prevent pipe usage", () => {
+  it('should prevent pipe usage', () => {
     const f = () => {
       ksOf(0).pipe(ksTakeUntil(ksEmpty())).pipe(ksMapTo(0));
     };
@@ -476,52 +479,52 @@ describe("ksTakeUntil", () => {
   });
 });
 
-describe("ksTake", () => {
-  it("should complete main stream before notifier emits", async () => {
+describe('ksTake', () => {
+  it('should complete main stream before notifier emits', async () => {
     const random = Math.random();
     const s = ksOf(random).pipe(ksTake(1));
     expect(await stackOut(s)).toEqual([random]);
   });
 
-  it("should complete main stream after notifier emits", async () => {
+  it('should complete main stream after notifier emits', async () => {
     const s = ksPeriodic(100).pipe(ksTake(5));
     expect(await stackOut(s)).toEqual([0, 1, 2, 3, 4]);
   });
 });
 
-describe("ksTakeWhile", () => {
-  it("should emits until provided expression is false", async () => {
-    const s = ksPeriodic(0).pipe(ksTakeWhile((n) => n < 9));
+describe('ksTakeWhile', () => {
+  it('should emits until provided expression is false', async () => {
+    const s = ksPeriodic(0).pipe(ksTakeWhile(n => n < 9));
     expect(await stackOut(s)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   });
 });
 
-it("should works like RxJS (in some cases ;)", async () => {
+it('should works like RxJS (in some cases ;)', async () => {
   const ms = 4500;
   const random = Math.random();
 
   const a = ksPeriodic(10)
     .pipe(
-      ksSwitch((n) => {
+      ksSwitch(n => {
         return ksConcat(
           ksOf(n),
-          ksTimeout(200).pipe(ksMapTo(random)).pipe(ksTake(1))
+          ksTimeout(200).pipe(ksMapTo(random)).pipe(ksTake(1)),
         );
-      })
+      }),
     )
-    .pipe(ksMap((x) => x * x))
+    .pipe(ksMap(x => x * x))
     .pipe(ksPairwise())
     .pipe(ksTap({}))
     .pipe(ksTakeUntil(ksTimeout(ms)));
 
   const b = timer(0, 10).pipe(
-    switchMap((n) => {
+    switchMap(n => {
       return concat(of(n), timer(200).pipe(mapTo(random), take(1)));
     }),
-    map((x) => x * x),
+    map(x => x * x),
     pairwise(),
     tap(() => {}),
-    takeUntil(timer(ms))
+    takeUntil(timer(ms)),
   );
 
   const aa = stackOut(ksMerge(ksCombineLatest(a, a), ksCombineLatest(a, a)));
@@ -533,21 +536,21 @@ it("should works like RxJS (in some cases ;)", async () => {
   expect(aaa.slice(0, size)).toEqual(bbb.slice(0, size));
 });
 
-describe("ksSubject", () => {
-  it("should emit last value after subscribe", async () => {
+describe('ksSubject', () => {
+  it('should emit last value after subscribe', async () => {
     const r = { v: 0, c: false, emitted: false };
     const s = ksSubject(0);
     s.value++;
     s.value++;
     s.complete();
     s.subscribe({
-      next: (v) => (r.v = v),
+      next: v => (r.v = v),
       complete: () => (r.c = true),
     }).unsubscribe();
     r.v = 0;
     r.c = false;
     s.subscribe({
-      next: (v) => {
+      next: v => {
         r.v = v;
         r.emitted = true;
       },
@@ -556,7 +559,7 @@ describe("ksSubject", () => {
     expect(r).toEqual({ v: 2, c: true, emitted: true });
   });
 
-  it("should test subject", async () => {
+  it('should test subject', async () => {
     const s = ksSubject(-1);
     s.value = 0;
     const a = stackOut(s);
@@ -570,7 +573,7 @@ describe("ksSubject", () => {
     expect(await stackOut(s)).toEqual([45]);
   });
 
-  it("should unsubscribe properly", () => {
+  it('should unsubscribe properly', () => {
     const s = ksSubject(0);
     let count = 0;
     const next = () => count++;
@@ -582,7 +585,7 @@ describe("ksSubject", () => {
     expect(count).toEqual(2);
   });
 
-  it("should not emit values after complete", async () => {
+  it('should not emit values after complete', async () => {
     const s = ksSubject(1);
     const a = stackOut(s);
     s.complete();
@@ -591,7 +594,7 @@ describe("ksSubject", () => {
     expect(await a).toEqual([1]);
   });
 
-  it("should emit same values on multiple subscription", async () => {
+  it('should emit same values on multiple subscription', async () => {
     const s = ksSubject(0);
     const a = stackOut(s);
     const b = stackOut(s);
@@ -601,20 +604,20 @@ describe("ksSubject", () => {
     expect(await a).toEqual(await b);
   });
 
-  it("should accept partial observer", () => {
+  it('should accept partial observer', () => {
     expect(ksSubject(0).subscribe({}).unsubscribe()).toBeUndefined();
   });
 
-  it("should emit current value after subscribe", async () => {
+  it('should emit current value after subscribe', async () => {
     const s = ksSubject(5)
-      .pipe(ksMap((n) => n * n))
+      .pipe(ksMap(n => n * n))
       .pipe(ksTake(1));
     expect(await stackOut(s)).toEqual([25]);
   });
 });
 
-describe("ksDelay", () => {
-  it("should delay emitted values by given time", async () => {
+describe('ksDelay', () => {
+  it('should delay emitted values by given time', async () => {
     const delay = 100;
     const accuracy = 4;
     const now = ksMap(() => Date.now());
@@ -630,14 +633,14 @@ describe("ksDelay", () => {
     }
   });
 
-  it("should unsubscribe before delay", () => {
+  it('should unsubscribe before delay', () => {
     const s = ksPeriodic(0, KsBehaviour.SHARE).pipe(ksDelay(1000));
     expect(s.subscribe({}).unsubscribe()).toBeUndefined();
   });
 });
 
-describe("ksZip", () => {
-  it("should zip values", async () => {
+describe('ksZip', () => {
+  it('should zip values', async () => {
     const a = ksPeriodic(20).pipe(ksTake(10));
     const b = ksPeriodic(10).pipe(ksTake(20));
     expect(await stackOut(ksZip(a, b))).toEqual([
@@ -666,14 +669,14 @@ describe("ksZip", () => {
     ]);
   });
 
-  it("should properly unsubscribe", () => {
+  it('should properly unsubscribe', () => {
     const s = ksOf(0);
     expect(ksZip(s, s).subscribe({}).unsubscribe()).toBeUndefined();
   });
 });
 
-describe("ksScan", () => {
-  it("should calculate sum", async () => {
+describe('ksScan', () => {
+  it('should calculate sum', async () => {
     const s = ksPeriodic(0)
       .pipe(ksScan((acc, curr) => [...acc, curr], <number[]>[]))
       .pipe(ksTake(10));
@@ -692,16 +695,16 @@ describe("ksScan", () => {
   });
 });
 
-describe("pipe", () => {
-  it("should create transformer by combining existing", async () => {
+describe('pipe', () => {
+  it('should create transformer by combining existing', async () => {
     const p = ksPipe(
       ksPipe(
         ksMap((n: number) => n + n),
-        ksMap((n: number) => n * n)
+        ksMap((n: number) => n * n),
       ),
-      ksMap((n: number) => String(n))
+      ksMap((n: number) => String(n)),
     );
     const s = ksOf(2).pipe(p);
-    expect((await stackOut(s))[0]).toBe("16");
+    expect((await stackOut(s))[0]).toBe('16');
   });
 });
