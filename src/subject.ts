@@ -7,12 +7,10 @@ import {
   Observer,
   observerFromPartial,
   Stream,
-  SubscribePartialFn,
 } from './core';
 
 export type Subject<T> = Stream<T> & {
   value: T;
-  readonly subscribe: SubscribePartialFn<T>;
   readonly complete: CompleteFn;
 };
 
