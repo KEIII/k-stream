@@ -33,8 +33,6 @@ export enum KsBehaviour {
   COLD, // Create source on each subscription
   SHARE, // Share source among multiple subscribers
   SHARE_REPLAY, // Share source and replay last emissions on subscription
-  PUBLISH, // Make source hot
-  PUBLISH_REPLAY, // Make source hot and replay last emissions on subscription
 }
 
 type UUID = Readonly<{}>;
@@ -169,72 +167,6 @@ const createShareStream = <T>(
   return stream;
 };
 
-const createPublishStream = <T>(
-  subscribeFn: SubscribeFn<T>,
-  replay: boolean,
-): Stream<T> => {
-  let isCompleted = false;
-  let lastValue = None<T>();
-  const observersMap = new Map<UUID, Observer<T>>();
-
-  const onNext: NextFn<T> = (value: T): void => {
-    if (isCompleted) {
-      console.warn('Logic error: Ignore call next on completed stream.');
-    } else {
-      if (replay) {
-        lastValue = Some(value);
-      }
-      for (const { next } of observersMap.values()) {
-        next(value);
-      }
-    }
-  };
-
-  const onComplete: CompleteFn = (): void => {
-    if (isCompleted) {
-      console.warn('Logic error: Ignore call complete on completed stream.');
-    } else {
-      isCompleted = true;
-      for (const { complete } of observersMap.values()) {
-        complete();
-      }
-    }
-  };
-
-  const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>,
-  ): Unsubscribable => {
-    const observer = observerFromPartial<T>(partialObserver);
-
-    if (replay && lastValue._tag === 'Some') {
-      observer.next(lastValue.some);
-    }
-
-    if (isCompleted) {
-      observer.complete();
-      return { unsubscribe: noop };
-    }
-
-    const subscribeId = Object.freeze({});
-    observersMap.set(subscribeId, observer);
-
-    return {
-      unsubscribe: () => {
-        observersMap.delete(subscribeId);
-      },
-    };
-  };
-
-  const stream: Stream<T> = {
-    subscribe,
-    pipe: transformFn => transformFn(stream),
-    behaviour: replay ? KsBehaviour.PUBLISH_REPLAY : KsBehaviour.PUBLISH,
-    disconnect: subscribeFn({ next: onNext, complete: onComplete }).unsubscribe,
-  };
-
-  return stream;
-};
-
 export const ksCreateStream = <T>(
   behaviour: KsBehaviour,
   subscribeFn: SubscribeFn<T>,
@@ -248,12 +180,6 @@ export const ksCreateStream = <T>(
     }
     case KsBehaviour.SHARE_REPLAY: {
       return createShareStream(subscribeFn, true);
-    }
-    case KsBehaviour.PUBLISH: {
-      return createPublishStream(subscribeFn, false);
-    }
-    case KsBehaviour.PUBLISH_REPLAY: {
-      return createPublishStream(subscribeFn, true);
     }
     default: {
       throw 'unknown behaviour';
