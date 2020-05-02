@@ -26,7 +26,6 @@ export type Observable<T> = { readonly subscribe: SubscribePartialFn<T> };
 export type Stream<T> = Observable<T> & {
   readonly pipe: PipeFn<T>;
   readonly behaviour: KsBehaviour;
-  disconnect?: () => void;
 };
 
 export enum KsBehaviour {
