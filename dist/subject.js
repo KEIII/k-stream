@@ -1,39 +1,42 @@
-import { KsBehaviour, ksCreateStream, noop, observerFromPartial, } from "./core";
-export const ksSubject = (initValue) => {
+import { KsBehaviour, ksCreateStream, noop, observerFromPartial, } from './core';
+export const ksSubject = (initValue, behaviour = KsBehaviour.SHARE_REPLAY) => {
     const state = { isCompleted: false, current: initValue };
-    let observer;
-    const next = (value) => {
-        if (!state.isCompleted) {
-            state.current = value;
-            observer.next(value);
-        }
-    };
-    const complete = () => {
-        state.isCompleted = true;
-        observer.complete();
-    };
-    const stream = ksCreateStream(KsBehaviour.PUBLISH_REPLAY, (o) => {
-        observer = o;
-        observer.next(initValue);
-        return { unsubscribe: noop };
+    let subjectObserver = null;
+    const stream = ksCreateStream(behaviour, observer => {
+        subjectObserver = observer;
+        subjectObserver.next(state.current);
+        return { unsubscribe: () => (subjectObserver = null) };
     });
     return {
-        subscribe: (o) => {
+        subscribe: observer => {
+            const { next, complete } = observerFromPartial(observer);
             if (state.isCompleted) {
-                const { next, complete } = observerFromPartial(o);
                 next(state.current);
                 complete();
                 return { unsubscribe: noop };
             }
             else {
-                return stream.subscribe(o);
+                return stream.subscribe(observer);
             }
         },
         pipe: stream.pipe,
         behaviour: stream.behaviour,
-        complete,
+        complete: () => {
+            state.isCompleted = true;
+            if (subjectObserver !== null) {
+                subjectObserver.complete();
+            }
+        },
         set value(value) {
-            next(value);
+            if (state.isCompleted) {
+                console.warn('Logic error: Ignore call next on completed stream.');
+            }
+            else {
+                state.current = value;
+                if (subjectObserver !== null) {
+                    subjectObserver.next(value);
+                }
+            }
         },
         get value() {
             return state.current;

@@ -1,11 +1,9 @@
-import { Some, None } from "./ts-option";
+import { Some, None } from './ts-option';
 export var KsBehaviour;
 (function (KsBehaviour) {
     KsBehaviour[KsBehaviour["COLD"] = 0] = "COLD";
     KsBehaviour[KsBehaviour["SHARE"] = 1] = "SHARE";
     KsBehaviour[KsBehaviour["SHARE_REPLAY"] = 2] = "SHARE_REPLAY";
-    KsBehaviour[KsBehaviour["PUBLISH"] = 3] = "PUBLISH";
-    KsBehaviour[KsBehaviour["PUBLISH_REPLAY"] = 4] = "PUBLISH_REPLAY";
 })(KsBehaviour || (KsBehaviour = {}));
 export const noop = () => { };
 export const observerFromPartial = (o) => {
@@ -19,9 +17,9 @@ const createColdStream = (subscribeFn) => {
         let isCompleted = false;
         const observer = observerFromPartial(partialObserver);
         return subscribeFn({
-            next: (value) => {
+            next: value => {
                 if (isCompleted) {
-                    console.warn("Logic error: Ignore call next on completed stream.");
+                    console.warn('Logic error: Ignore call next on completed stream.');
                 }
                 else {
                     observer.next(value);
@@ -29,7 +27,7 @@ const createColdStream = (subscribeFn) => {
             },
             complete: () => {
                 if (isCompleted) {
-                    console.warn("Logic error: Ignore call complete on completed stream.");
+                    console.warn('Logic error: Ignore call complete on completed stream.');
                 }
                 else {
                     isCompleted = true;
@@ -40,7 +38,7 @@ const createColdStream = (subscribeFn) => {
     };
     const stream = {
         subscribe,
-        pipe: (transformFn) => transformFn(stream),
+        pipe: transformFn => transformFn(stream),
         behaviour: KsBehaviour.COLD,
     };
     return stream;
@@ -52,7 +50,7 @@ const createShareStream = (subscribeFn, replay) => {
     const observersMap = new Map();
     const onNext = (value) => {
         if (isCompleted) {
-            console.warn("Logic error: Ignore call next on completed stream.");
+            console.warn('Logic error: Ignore call next on completed stream.');
         }
         else {
             if (replay) {
@@ -65,7 +63,7 @@ const createShareStream = (subscribeFn, replay) => {
     };
     const onComplete = () => {
         if (isCompleted) {
-            console.warn("Logic error: Ignore call complete on completed stream.");
+            console.warn('Logic error: Ignore call complete on completed stream.');
         }
         else {
             isCompleted = true;
@@ -79,7 +77,7 @@ const createShareStream = (subscribeFn, replay) => {
             return { unsubscribe: noop };
         }
         const observer = observerFromPartial(partialObserver);
-        if (replay && lastValue._tag === "Some") {
+        if (replay && lastValue._tag === 'Some') {
             observer.next(lastValue.some);
         }
         const subscribeId = Object.freeze({});
@@ -107,61 +105,8 @@ const createShareStream = (subscribeFn, replay) => {
     };
     const stream = {
         subscribe,
-        pipe: (transformFn) => transformFn(stream),
+        pipe: transformFn => transformFn(stream),
         behaviour: replay ? KsBehaviour.SHARE_REPLAY : KsBehaviour.SHARE,
-    };
-    return stream;
-};
-const createPublishStream = (subscribeFn, replay) => {
-    let isCompleted = false;
-    let lastValue = None();
-    const observersMap = new Map();
-    const onNext = (value) => {
-        if (isCompleted) {
-            console.warn("Logic error: Ignore call next on completed stream.");
-        }
-        else {
-            if (replay) {
-                lastValue = Some(value);
-            }
-            for (const { next } of observersMap.values()) {
-                next(value);
-            }
-        }
-    };
-    const onComplete = () => {
-        if (isCompleted) {
-            console.warn("Logic error: Ignore call complete on completed stream.");
-        }
-        else {
-            isCompleted = true;
-            for (const { complete } of observersMap.values()) {
-                complete();
-            }
-        }
-    };
-    const subscribe = (partialObserver) => {
-        const observer = observerFromPartial(partialObserver);
-        if (replay && lastValue._tag === "Some") {
-            observer.next(lastValue.some);
-        }
-        if (isCompleted) {
-            observer.complete();
-            return { unsubscribe: noop };
-        }
-        const subscribeId = Object.freeze({});
-        observersMap.set(subscribeId, observer);
-        return {
-            unsubscribe: () => {
-                observersMap.delete(subscribeId);
-            },
-        };
-    };
-    const stream = {
-        subscribe,
-        pipe: (transformFn) => transformFn(stream),
-        behaviour: replay ? KsBehaviour.PUBLISH_REPLAY : KsBehaviour.PUBLISH,
-        disconnect: subscribeFn({ next: onNext, complete: onComplete }).unsubscribe,
     };
     return stream;
 };
@@ -176,14 +121,8 @@ export const ksCreateStream = (behaviour, subscribeFn) => {
         case KsBehaviour.SHARE_REPLAY: {
             return createShareStream(subscribeFn, true);
         }
-        case KsBehaviour.PUBLISH: {
-            return createPublishStream(subscribeFn, false);
-        }
-        case KsBehaviour.PUBLISH_REPLAY: {
-            return createPublishStream(subscribeFn, true);
-        }
         default: {
-            throw "unknown behaviour";
+            throw 'unknown behaviour';
         }
     }
 };

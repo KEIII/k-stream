@@ -1,6 +1,6 @@
-import { KsBehaviour, Observable, Stream } from "./core";
-import { Option } from "./ts-option";
-import { Result } from "./ts-result";
+import { KsBehaviour, Observable, Stream } from './core';
+import { Option } from './ts-option';
+import { Result } from './ts-result';
 /**
  * Observable that immediately completes.
  */

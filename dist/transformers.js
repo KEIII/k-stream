@@ -1,7 +1,7 @@
-import { ksCreateStream, observerFromPartial, } from "./core";
-import { Some, None } from "./ts-option";
+import { ksCreateStream, observerFromPartial, } from './core';
+import { Some, None } from './ts-option';
 export const ksChangeBehaviour = (b) => {
-    return (s) => ksCreateStream(b, s.subscribe);
+    return s => ksCreateStream(b, s.subscribe);
 };
 /**
  * Apply projection with each value from source.
@@ -37,7 +37,7 @@ export const ksTap = (tapPartialObserver) => {
         return ksCreateStream(stream.behaviour, ({ next, complete }) => {
             const tapObserver = observerFromPartial(tapPartialObserver);
             return stream.subscribe({
-                next: (value) => {
+                next: value => {
                     tapObserver.next(value);
                     next(value);
                 },
@@ -58,7 +58,7 @@ export const ksFilter = (select) => {
             return stream.subscribe({
                 next: (value) => {
                     const o = select(value);
-                    if (o._tag === "Some") {
+                    if (o._tag === 'Some') {
                         next(o.some);
                     }
                 },
@@ -155,7 +155,7 @@ export const ksTakeUntil = (notifier) => {
             }
         });
         return Object.assign(Object.assign({}, newStream), { pipe: () => {
-                throw "Disallows the application of operators after takeUntil. Operators placed after takeUntil can effect subscription leaks.";
+                throw 'Disallows the application of operators after takeUntil. Operators placed after takeUntil can effect subscription leaks.';
             } });
     };
 };
@@ -166,7 +166,7 @@ export const ksTake = (count) => {
     return (stream) => {
         return ksCreateStream(stream.behaviour, ({ next, complete }) => {
             let counter = 0;
-            const tryNext = (value) => {
+            const tryNext = value => {
                 next(value);
                 if (++counter >= count) {
                     complete();
@@ -185,7 +185,7 @@ export const ksTakeWhile = (predicate) => {
     return (stream) => {
         return ksCreateStream(stream.behaviour, ({ next, complete }) => {
             return stream.subscribe({
-                next: (value) => {
+                next: value => {
                     if (predicate(value)) {
                         next(value);
                     }
@@ -212,7 +212,7 @@ export const ksDelay = (delay) => {
                 timers.clear();
             };
             const subscription = stream.subscribe({
-                next: (value) => {
+                next: value => {
                     const t = setTimeout(() => {
                         next(value);
                         timers.delete(t);
@@ -245,12 +245,12 @@ export const ksDebounce = (dueTime) => {
             let timeoutId;
             let lastValue = None();
             const tryNext = () => {
-                if (lastValue._tag === "Some") {
+                if (lastValue._tag === 'Some') {
                     next(lastValue.some);
                     lastValue = None();
                 }
             };
-            const debounceNext = (value) => {
+            const debounceNext = value => {
                 lastValue = Some(value);
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(tryNext, dueTime);
@@ -283,12 +283,12 @@ export const ksThrottle = (duration) => {
             let executedTime = Number.MIN_SAFE_INTEGER;
             let lastValue = None();
             const tryNext = () => {
-                if (lastValue._tag === "Some") {
+                if (lastValue._tag === 'Some') {
                     next(lastValue.some);
                     lastValue = None();
                 }
             };
-            const throttleNext = (value) => {
+            const throttleNext = value => {
                 lastValue = Some(value);
                 const now = Date.now();
                 const diff = now - executedTime;
@@ -316,8 +316,8 @@ export const ksPairwise = () => {
         return ksCreateStream(o.behaviour, ({ next, complete }) => {
             let prevValue = None();
             return o.subscribe({
-                next: (value) => {
-                    if (prevValue._tag === "Some") {
+                next: value => {
+                    if (prevValue._tag === 'Some') {
                         next([prevValue.some, value]);
                     }
                     prevValue = Some(value);
@@ -335,7 +335,7 @@ export const ksScan = (accumulator, seed) => {
         return ksCreateStream(o.behaviour, ({ next, complete }) => {
             let acc = seed;
             return o.subscribe({
-                next: (value) => {
+                next: value => {
                     acc = accumulator(acc, value);
                     next(acc);
                 },

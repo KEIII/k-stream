@@ -1,7 +1,7 @@
-import { KsBehaviour, ksCreateStream, noop, } from "./core";
-import { ksMap } from "./transformers";
-import { None, Some } from "./ts-option";
-import { Err, Ok } from "./ts-result";
+import { KsBehaviour, ksCreateStream, noop, } from './core';
+import { ksMap } from './transformers';
+import { None, Some } from './ts-option';
+import { Err, Ok } from './ts-result';
 /**
  * Observable that immediately completes.
  */
@@ -101,7 +101,7 @@ export const ksZip = (stream1, stream2) => {
             }
         };
         const subscription1 = stream1.subscribe({
-            next: (value) => {
+            next: value => {
                 queue1.push(value);
                 tryNext();
             },
@@ -111,7 +111,7 @@ export const ksZip = (stream1, stream2) => {
             },
         });
         const subscription2 = stream2.subscribe({
-            next: (value) => {
+            next: value => {
                 queue2.push(value);
                 tryNext();
             },
@@ -147,7 +147,7 @@ export const ksInterval = (ms, behaviour = KsBehaviour.COLD) => {
     });
 };
 export const ksPeriodic = (ms, behaviour = KsBehaviour.COLD) => {
-    return ksConcat(ksOf(0, behaviour), ksInterval(ms, behaviour).pipe(ksMap((n) => n + 1)));
+    return ksConcat(ksOf(0, behaviour), ksInterval(ms, behaviour).pipe(ksMap(n => n + 1)));
 };
 /**
  * When any observable emits a value, emit the last emitted value from each.
@@ -159,7 +159,7 @@ export const ksCombineLatest = (stream1, stream2) => {
         let value1 = None();
         let value2 = None();
         const tryNext = () => {
-            if (value1._tag === "Some" && value2._tag === "Some") {
+            if (value1._tag === 'Some' && value2._tag === 'Some') {
                 return next([value1.some, value2.some]);
             }
         };
@@ -169,7 +169,7 @@ export const ksCombineLatest = (stream1, stream2) => {
             }
         };
         const subscription1 = stream1.subscribe({
-            next: (value) => {
+            next: value => {
                 value1 = Some(value);
                 tryNext();
             },
@@ -179,7 +179,7 @@ export const ksCombineLatest = (stream1, stream2) => {
             },
         });
         const subscription2 = stream2.subscribe({
-            next: (value) => {
+            next: value => {
                 value2 = Some(value);
                 tryNext();
             },
@@ -208,21 +208,21 @@ export const ksForkJoin = (stream1, stream2) => {
         const tryComplete = () => {
             if (completed1 &&
                 completed2 &&
-                value1._tag === "Some" &&
-                value2._tag === "Some") {
+                value1._tag === 'Some' &&
+                value2._tag === 'Some') {
                 next([value1.some, value2.some]);
                 complete();
             }
         };
         const subscription1 = stream1.subscribe({
-            next: (value) => (value1 = Some(value)),
+            next: value => (value1 = Some(value)),
             complete: () => {
                 completed1 = true;
                 tryComplete();
             },
         });
         const subscription2 = stream2.subscribe({
-            next: (value) => (value2 = Some(value)),
+            next: value => (value2 = Some(value)),
             complete: () => {
                 completed2 = true;
                 tryComplete();
@@ -240,7 +240,7 @@ export const ksFromPromise = (promise, behaviour = KsBehaviour.COLD) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         let on = true;
         promise
-            .then((value) => {
+            .then(value => {
             if (on) {
                 next(Ok(value));
                 complete();
@@ -256,10 +256,10 @@ export const ksFromPromise = (promise, behaviour = KsBehaviour.COLD) => {
     });
 };
 export const ksToPromise = (o) => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         let result = None();
         const s = o.subscribe({
-            next: (value) => (result = Some(value)),
+            next: value => (result = Some(value)),
             complete: () => {
                 resolve(result);
                 setTimeout(() => s.unsubscribe());

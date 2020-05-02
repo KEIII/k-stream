@@ -1,9 +1,9 @@
 export declare type Ok<T> = Readonly<{
-    _tag: "Ok";
+    _tag: 'Ok';
     ok: T;
 }>;
 export declare type Err<E> = Readonly<{
-    _tag: "Err";
+    _tag: 'Err';
     err: E;
 }>;
 export declare type Result<T, E> = Ok<T> | Err<E>;

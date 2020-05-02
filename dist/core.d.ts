@@ -22,9 +22,7 @@ export declare type Stream<T> = Observable<T> & {
 export declare enum KsBehaviour {
     COLD = 0,
     SHARE = 1,
-    SHARE_REPLAY = 2,
-    PUBLISH = 3,
-    PUBLISH_REPLAY = 4
+    SHARE_REPLAY = 2
 }
 export declare const noop: () => void;
 export declare const observerFromPartial: <T>(o: Partial<Observer<T>>) => Observer<T>;
