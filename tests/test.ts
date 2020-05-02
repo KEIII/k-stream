@@ -589,7 +589,7 @@ describe('ksSubject', () => {
 describe('ksDelay', () => {
   it('should delay emitted values by given time', async () => {
     const delay = 100;
-    const accuracy = 4;
+    const accuracy = 10;
     const now = ksMap(() => Date.now());
     const org = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
       .pipe(now)
