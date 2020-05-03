@@ -8,6 +8,6 @@ export const Some = <T>(some: T): Option<T> => {
   return Object.freeze({ _tag: 'Some', some });
 };
 
-export const None = <T>(): Option<T> => {
+export const None = <T>(_?: T): Option<T> => {
   return Object.freeze({ _tag: 'None' });
 };

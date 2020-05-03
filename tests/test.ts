@@ -285,7 +285,7 @@ it('should filter skip odd (i.e emit only even)', async () => {
     ksPeriodic(0)
       .pipe(
         ksFilter(n => {
-          return !(n & 1) ? Some(n) : None<typeof n>();
+          return !(n & 1) ? Some(n) : None(n);
         }),
       )
       .pipe(ksTake(10)),
