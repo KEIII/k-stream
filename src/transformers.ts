@@ -71,7 +71,7 @@ export const ksTap = <T>(
 /**
  * Emit values that pass the provided condition.
  */
-export const ksFilter = <T, O extends T>(
+export const ksFilter = <T, O>(
   select: (value: T) => Option<O>,
 ): TransformFn<T, O> => {
   return (stream: Stream<T>): Stream<O> => {

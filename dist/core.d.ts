@@ -17,7 +17,6 @@ export declare type Observable<T> = {
 export declare type Stream<T> = Observable<T> & {
     readonly pipe: PipeFn<T>;
     readonly behaviour: KsBehaviour;
-    disconnect?: () => void;
 };
 export declare enum KsBehaviour {
     COLD = 0,

@@ -16,7 +16,7 @@ export declare const ksTap: <T>(tapPartialObserver: Partial<Observer<T>>) => Tra
 /**
  * Emit values that pass the provided condition.
  */
-export declare const ksFilter: <T, O extends T>(select: (value: T) => Option<O>) => TransformFn<T, O>;
+export declare const ksFilter: <T, O>(select: (value: T) => Option<O>) => TransformFn<T, O>;
 /**
  * Map to observable, complete previous inner observable, emit values.
  */

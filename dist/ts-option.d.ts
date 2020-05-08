@@ -7,4 +7,4 @@ export declare type None = Readonly<{
 }>;
 export declare type Option<T> = Some<T> | None;
 export declare const Some: <T>(some: T) => Option<T>;
-export declare const None: <T>() => Option<T>;
+export declare const None: <T>(_?: T | undefined) => Option<T>;
