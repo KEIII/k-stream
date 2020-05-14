@@ -1,37 +1,29 @@
 import { Some, None } from './ts-option';
-export var KsBehaviour;
-(function (KsBehaviour) {
-    KsBehaviour[KsBehaviour["COLD"] = 0] = "COLD";
-    KsBehaviour[KsBehaviour["SHARE"] = 1] = "SHARE";
-    KsBehaviour[KsBehaviour["SHARE_REPLAY"] = 2] = "SHARE_REPLAY";
-})(KsBehaviour || (KsBehaviour = {}));
 export const noop = () => { };
-export const observerFromPartial = (o) => {
-    return {
-        next: o.next !== undefined ? o.next : noop,
-        complete: o.complete !== undefined ? o.complete : noop,
-    };
-};
-const createColdStream = (subscribeFn) => {
-    const subscribe = (partialObserver) => {
+/**
+ * Create source on each subscription.
+ */
+export const ksCold = (subscribeFn) => {
+    const subscribe = (observer) => {
         let isCompleted = false;
-        const observer = observerFromPartial(partialObserver);
         return subscribeFn({
             next: value => {
+                var _a;
                 if (isCompleted) {
                     console.warn('Logic error: Ignore call next on completed stream.');
                 }
                 else {
-                    observer.next(value);
+                    (_a = observer.next) === null || _a === void 0 ? void 0 : _a.call(observer, value);
                 }
             },
             complete: () => {
+                var _a;
                 if (isCompleted) {
                     console.warn('Logic error: Ignore call complete on completed stream.');
                 }
                 else {
                     isCompleted = true;
-                    observer.complete();
+                    (_a = observer.complete) === null || _a === void 0 ? void 0 : _a.call(observer);
                 }
             },
         });
@@ -39,7 +31,7 @@ const createColdStream = (subscribeFn) => {
     const stream = {
         subscribe,
         pipe: transformFn => transformFn(stream),
-        behaviour: KsBehaviour.COLD,
+        behaviour: ksCold,
     };
     return stream;
 };
@@ -57,7 +49,7 @@ const createShareStream = (subscribeFn, replay) => {
                 lastValue = Some(value);
             }
             for (const { next } of observersMap.values()) {
-                next(value);
+                next === null || next === void 0 ? void 0 : next(value);
             }
         }
     };
@@ -68,17 +60,17 @@ const createShareStream = (subscribeFn, replay) => {
         else {
             isCompleted = true;
             for (const { complete } of observersMap.values()) {
-                complete();
+                complete === null || complete === void 0 ? void 0 : complete();
             }
         }
     };
-    const subscribe = (partialObserver) => {
+    const subscribe = (observer) => {
+        var _a;
         if (isCompleted) {
             return { unsubscribe: noop };
         }
-        const observer = observerFromPartial(partialObserver);
         if (replay && lastValue._tag === 'Some') {
-            observer.next(lastValue.some);
+            (_a = observer.next) === null || _a === void 0 ? void 0 : _a.call(observer, lastValue.some);
         }
         const subscribeId = Object.freeze({});
         const unsubscribe = () => {
@@ -106,26 +98,26 @@ const createShareStream = (subscribeFn, replay) => {
     const stream = {
         subscribe,
         pipe: transformFn => transformFn(stream),
-        behaviour: replay ? KsBehaviour.SHARE_REPLAY : KsBehaviour.SHARE,
+        behaviour: replay ? ksShareReplay : ksShare,
+        get lastValue() {
+            return lastValue._tag === 'Some' ? lastValue.some : undefined;
+        },
     };
     return stream;
 };
-export const ksCreateStream = (behaviour, subscribeFn) => {
-    switch (behaviour) {
-        case KsBehaviour.COLD: {
-            return createColdStream(subscribeFn);
-        }
-        case KsBehaviour.SHARE: {
-            return createShareStream(subscribeFn, false);
-        }
-        case KsBehaviour.SHARE_REPLAY: {
-            return createShareStream(subscribeFn, true);
-        }
-        default: {
-            throw 'unknown behaviour';
-        }
-    }
+/**
+ * Share source among multiple subscribers.
+ */
+export const ksShare = (f) => {
+    return createShareStream(f, false);
 };
+/**
+ * Share source and replay last emissions on subscription.
+ */
+export const ksShareReplay = (f) => {
+    return createShareStream(f, true);
+};
+export const ksCreateStream = (b, f) => b(f);
 /**
  * Combine transformers.
  */

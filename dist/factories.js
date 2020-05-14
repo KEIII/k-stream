@@ -1,4 +1,4 @@
-import { KsBehaviour, ksCreateStream, noop, } from './core';
+import { ksCold, ksCreateStream, noop, } from './core';
 import { ksMap } from './transformers';
 import { None, Some } from './ts-option';
 import { Err, Ok } from './ts-result';
@@ -6,7 +6,7 @@ import { Err, Ok } from './ts-result';
  * Observable that immediately completes.
  */
 export const ksEmpty = () => {
-    return ksCreateStream(KsBehaviour.COLD, ({ complete }) => {
+    return ksCreateStream(ksCold, ({ complete }) => {
         complete();
         return { unsubscribe: noop };
     });
@@ -14,7 +14,7 @@ export const ksEmpty = () => {
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = (value, behaviour = KsBehaviour.COLD) => {
+export const ksOf = (value, behaviour = ksCold) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         next(value);
         complete();
@@ -128,7 +128,7 @@ export const ksZip = (stream1, stream2) => {
         };
     });
 };
-export const ksTimeout = (ms, behaviour = KsBehaviour.COLD) => {
+export const ksTimeout = (ms, behaviour = ksCold) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         const handler = () => {
             next(0);
@@ -138,7 +138,7 @@ export const ksTimeout = (ms, behaviour = KsBehaviour.COLD) => {
         return { unsubscribe: () => clearTimeout(timeoutId) };
     });
 };
-export const ksInterval = (ms, behaviour = KsBehaviour.COLD) => {
+export const ksInterval = (ms, behaviour = ksCold) => {
     return ksCreateStream(behaviour, ({ next }) => {
         let count = 0;
         const handler = () => next(count++);
@@ -146,7 +146,7 @@ export const ksInterval = (ms, behaviour = KsBehaviour.COLD) => {
         return { unsubscribe: () => clearInterval(intervalId) };
     });
 };
-export const ksPeriodic = (ms, behaviour = KsBehaviour.COLD) => {
+export const ksPeriodic = (ms, behaviour = ksCold) => {
     return ksConcat(ksOf(0, behaviour), ksInterval(ms, behaviour).pipe(ksMap(n => n + 1)));
 };
 /**
@@ -236,7 +236,7 @@ export const ksForkJoin = (stream1, stream2) => {
         };
     });
 };
-export const ksFromPromise = (promise, behaviour = KsBehaviour.COLD) => {
+export const ksFromPromise = (promise, behaviour = ksCold) => {
     return ksCreateStream(behaviour, ({ next, complete }) => {
         let on = true;
         promise

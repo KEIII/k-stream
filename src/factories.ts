@@ -1,5 +1,4 @@
 import {
-  KsBehaviour,
   ksCold,
   ksCreateStream,
   noop,

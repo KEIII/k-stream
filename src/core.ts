@@ -26,6 +26,7 @@ export type Observable<T> = { readonly subscribe: SubscribePartialFn<T> };
 export type Stream<T> = Observable<T> & {
   readonly pipe: PipeFn<T>;
   readonly behaviour: KsBehaviour;
+  readonly lastValue?: T;
 };
 
 export type KsBehaviour = <T>(subscribeFn: SubscribeFn<T>) => Stream<T>;
@@ -150,6 +151,9 @@ const createShareStream = <T>(
     subscribe,
     pipe: transformFn => transformFn(stream),
     behaviour: replay ? ksShareReplay : ksShare,
+    get lastValue() {
+      return lastValue._tag === 'Some' ? lastValue.some : undefined;
+    },
   };
 
   return stream;

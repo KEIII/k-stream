@@ -12,7 +12,7 @@ export declare const ksMapTo: <T, O>(value: O) => TransformFn<T, O>;
 /**
  * Transparently perform actions or side-effects, such as logging.
  */
-export declare const ksTap: <T>(tapPartialObserver: Partial<Observer<T>>) => TransformFn<T, T>;
+export declare const ksTap: <T>(tapObserver: Partial<Observer<T>>) => TransformFn<T, T>;
 /**
  * Emit values that pass the provided condition.
  */

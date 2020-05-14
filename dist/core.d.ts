@@ -17,15 +17,23 @@ export declare type Observable<T> = {
 export declare type Stream<T> = Observable<T> & {
     readonly pipe: PipeFn<T>;
     readonly behaviour: KsBehaviour;
+    readonly lastValue?: T;
 };
-export declare enum KsBehaviour {
-    COLD = 0,
-    SHARE = 1,
-    SHARE_REPLAY = 2
-}
+export declare type KsBehaviour = <T>(subscribeFn: SubscribeFn<T>) => Stream<T>;
 export declare const noop: () => void;
-export declare const observerFromPartial: <T>(o: Partial<Observer<T>>) => Observer<T>;
-export declare const ksCreateStream: <T>(behaviour: KsBehaviour, subscribeFn: SubscribeFn<T>) => Stream<T>;
+/**
+ * Create source on each subscription.
+ */
+export declare const ksCold: KsBehaviour;
+/**
+ * Share source among multiple subscribers.
+ */
+export declare const ksShare: KsBehaviour;
+/**
+ * Share source and replay last emissions on subscription.
+ */
+export declare const ksShareReplay: KsBehaviour;
+export declare const ksCreateStream: <T>(b: KsBehaviour, f: SubscribeFn<T>) => Stream<T>;
 /**
  * Combine transformers.
  */

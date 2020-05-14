@@ -1,7 +1,6 @@
 import {
   CompleteFn,
   ksCreateStream,
-  ksShare,
   ksShareReplay,
   noop,
   Observer,

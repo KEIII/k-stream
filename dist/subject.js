@@ -1,5 +1,5 @@
-import { KsBehaviour, ksCreateStream, noop, observerFromPartial, } from './core';
-export const ksSubject = (initValue, behaviour = KsBehaviour.SHARE_REPLAY) => {
+import { ksCreateStream, ksShareReplay, noop, } from './core';
+export const ksSubject = (initValue, behaviour = ksShareReplay) => {
     const state = { isCompleted: false, current: initValue };
     let subjectObserver = null;
     const stream = ksCreateStream(behaviour, observer => {
@@ -9,10 +9,10 @@ export const ksSubject = (initValue, behaviour = KsBehaviour.SHARE_REPLAY) => {
     });
     return {
         subscribe: observer => {
-            const { next, complete } = observerFromPartial(observer);
+            var _a, _b;
             if (state.isCompleted) {
-                next(state.current);
-                complete();
+                (_a = observer.next) === null || _a === void 0 ? void 0 : _a.call(observer, state.current);
+                (_b = observer.complete) === null || _b === void 0 ? void 0 : _b.call(observer);
                 return { unsubscribe: noop };
             }
             else {

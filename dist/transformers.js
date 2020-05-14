@@ -1,4 +1,4 @@
-import { ksCreateStream, observerFromPartial, } from './core';
+import { ksCreateStream, } from './core';
 import { Some, None } from './ts-option';
 export const ksChangeBehaviour = (b) => {
     return s => ksCreateStream(b, s.subscribe);
@@ -32,17 +32,18 @@ export const ksMapTo = (value) => {
 /**
  * Transparently perform actions or side-effects, such as logging.
  */
-export const ksTap = (tapPartialObserver) => {
+export const ksTap = (tapObserver) => {
     return (stream) => {
         return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-            const tapObserver = observerFromPartial(tapPartialObserver);
             return stream.subscribe({
                 next: value => {
-                    tapObserver.next(value);
+                    var _a;
+                    (_a = tapObserver.next) === null || _a === void 0 ? void 0 : _a.call(tapObserver, value);
                     next(value);
                 },
                 complete: () => {
-                    tapObserver.complete();
+                    var _a;
+                    (_a = tapObserver.complete) === null || _a === void 0 ? void 0 : _a.call(tapObserver);
                     complete();
                 },
             });
