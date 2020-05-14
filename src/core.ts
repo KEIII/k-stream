@@ -28,17 +28,18 @@ export type Stream<T> = Observable<T> & {
   readonly behaviour: KsBehaviour;
 };
 
-export enum KsBehaviour {
-  COLD, // Create source on each subscription
-  SHARE, // Share source among multiple subscribers
-  SHARE_REPLAY, // Share source and replay last emissions on subscription
-}
+export type KsBehaviour = <T>(subscribeFn: SubscribeFn<T>) => Stream<T>;
 
 type UUID = Readonly<{}>;
 
 export const noop = () => {};
 
-const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
+/**
+ * Create source on each subscription.
+ */
+export const ksCold: KsBehaviour = <T>(
+  subscribeFn: SubscribeFn<T>,
+): Stream<T> => {
   const subscribe: SubscribePartialFn<T> = (
     observer: Partial<Observer<T>>,
   ): Unsubscribable => {
@@ -67,7 +68,7 @@ const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
   const stream: Stream<T> = {
     subscribe,
     pipe: transformFn => transformFn(stream),
-    behaviour: KsBehaviour.COLD,
+    behaviour: ksCold,
   };
 
   return stream;
@@ -148,31 +149,30 @@ const createShareStream = <T>(
   const stream: Stream<T> = {
     subscribe,
     pipe: transformFn => transformFn(stream),
-    behaviour: replay ? KsBehaviour.SHARE_REPLAY : KsBehaviour.SHARE,
+    behaviour: replay ? ksShareReplay : ksShare,
   };
 
   return stream;
 };
 
-export const ksCreateStream = <T>(
-  behaviour: KsBehaviour,
-  subscribeFn: SubscribeFn<T>,
-): Stream<T> => {
-  switch (behaviour) {
-    case KsBehaviour.COLD: {
-      return createColdStream(subscribeFn);
-    }
-    case KsBehaviour.SHARE: {
-      return createShareStream(subscribeFn, false);
-    }
-    case KsBehaviour.SHARE_REPLAY: {
-      return createShareStream(subscribeFn, true);
-    }
-    default: {
-      throw 'unknown behaviour';
-    }
-  }
+/**
+ * Share source among multiple subscribers.
+ */
+export const ksShare: KsBehaviour = <T>(f: SubscribeFn<T>) => {
+  return createShareStream(f, false);
 };
+
+/**
+ * Share source and replay last emissions on subscription.
+ */
+export const ksShareReplay: KsBehaviour = <T>(f: SubscribeFn<T>) => {
+  return createShareStream(f, true);
+};
+
+export const ksCreateStream = <T>(
+  b: KsBehaviour,
+  f: SubscribeFn<T>,
+): Stream<T> => b(f);
 
 /**
  * Combine transformers.

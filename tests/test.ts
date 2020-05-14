@@ -10,8 +10,8 @@ import {
 } from 'rxjs/operators';
 import {
   Err,
-  KsBehaviour,
   ksChangeBehaviour,
+  ksCold,
   ksCombineLatest,
   ksConcat,
   ksCreateStream,
@@ -30,6 +30,8 @@ import {
   ksPeriodic,
   ksPipe,
   ksScan,
+  ksShare,
+  ksShareReplay,
   ksSubject,
   ksSwitch,
   ksTake,
@@ -59,13 +61,6 @@ const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
     });
   });
 };
-
-describe('ksCreateStream', () => {
-  it('should fail on unknown behaviour', () => {
-    const f = () => ksCreateStream(1000, () => ({ unsubscribe: noop }));
-    expect(f).toThrow('unknown behaviour');
-  });
-});
 
 describe('ksFromPromise', () => {
   it('should create stream from promise and resolve', async () => {
@@ -111,9 +106,9 @@ describe('ksToPromise', () => {
   });
 });
 
-describe('KsBehaviour.COLD', () => {
+describe('ksCold', () => {
   it('should ignore emits after complete', async () => {
-    const s = ksCreateStream<number>(KsBehaviour.COLD, ({ next, complete }) => {
+    const s = ksCreateStream<number>(ksCold, ({ next, complete }) => {
       next(1);
       complete();
       next(2);
@@ -134,30 +129,27 @@ describe('KsBehaviour.COLD', () => {
   });
 });
 
-describe('KsBehaviour.SHARE', () => {
+describe('ksShare', () => {
   it('should create share stream', async () => {
-    const s = ksOf(1, KsBehaviour.SHARE);
+    const s = ksOf(1, ksShare);
     expect(await stackOut(s)).toEqual([1]);
   });
 
   it('should ignore emits after complete', async () => {
-    const s = ksCreateStream<number>(
-      KsBehaviour.SHARE,
-      ({ next, complete }) => {
-        next(1);
-        complete();
-        next(2);
-        complete();
-        return { unsubscribe: noop };
-      },
-    );
+    const s = ksCreateStream<number>(ksShare, ({ next, complete }) => {
+      next(1);
+      complete();
+      next(2);
+      complete();
+      return { unsubscribe: noop };
+    });
     let result = 0;
     s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
   });
 
   it('should not emit after second subscribe', async () => {
-    const s = ksOf(1, KsBehaviour.SHARE);
+    const s = ksOf(1, ksShare);
     let emitted = false;
     const s1 = s.subscribe({});
     const s2 = s.subscribe({ next: () => (emitted = true) });
@@ -168,7 +160,7 @@ describe('KsBehaviour.SHARE', () => {
 
   it('should emit same values', async () => {
     const numbers = [1, 2];
-    const s = ksTimeout(0, KsBehaviour.SHARE).pipe(ksMap(() => numbers.pop()));
+    const s = ksTimeout(0, ksShare).pipe(ksMap(() => numbers.pop()));
     const subscription = s.subscribe({});
     const a = stackOut(s);
     const b = stackOut(s);
@@ -177,7 +169,7 @@ describe('KsBehaviour.SHARE', () => {
   });
 
   it('should not replay last value', async () => {
-    const stream = ksInterval(100, KsBehaviour.SHARE);
+    const stream = ksInterval(100, ksShare);
     const sub = stream.subscribe({});
     const p = new Promise(resolve => {
       setTimeout(() => {
@@ -189,7 +181,7 @@ describe('KsBehaviour.SHARE', () => {
   });
 
   it('should not affect original stream', async () => {
-    const a = ksPeriodic(100, KsBehaviour.SHARE)
+    const a = ksPeriodic(100, ksShare)
       .pipe(ksMap(n => n + n))
       .pipe(ksTake(10));
     const b = a.pipe(ksMap(n => n * n));
@@ -200,9 +192,9 @@ describe('KsBehaviour.SHARE', () => {
   });
 });
 
-describe('KsBehaviour.SHARE_REPLAY', () => {
+describe('ksShareReplay', () => {
   it('should replay last value', async () => {
-    const stream = ksInterval(100, KsBehaviour.SHARE_REPLAY);
+    const stream = ksInterval(100, ksShareReplay);
     const sub = stream.subscribe({});
     const p = new Promise(resolve => {
       setTimeout(() => {
@@ -214,7 +206,7 @@ describe('KsBehaviour.SHARE_REPLAY', () => {
   });
 
   it('should not affect original stream', async () => {
-    const a = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
+    const a = ksPeriodic(100, ksShareReplay)
       .pipe(ksMap(n => n + n))
       .pipe(ksTake(10));
     const b = a.pipe(ksMap(n => n * n));
@@ -242,7 +234,7 @@ describe('ksTimeout', () => {
 describe('ksMap', () => {
   it('should apply projection with each value from source', async () => {
     const random = Math.random();
-    const s = ksOf(random, KsBehaviour.SHARE).pipe(ksMap(n => () => n));
+    const s = ksOf(random, ksShare).pipe(ksMap(n => () => n));
     expect((await stackOut(s))[0]()).toBe(random);
   });
 });
@@ -250,7 +242,7 @@ describe('ksMap', () => {
 describe('ksMapTo', () => {
   it('should map to value', async () => {
     const random = Math.random();
-    const s = ksOf(0, KsBehaviour.SHARE).pipe(ksMapTo(random));
+    const s = ksOf(0, ksShare).pipe(ksMapTo(random));
     expect(await stackOut(s)).toEqual([random]);
   });
 });
@@ -266,14 +258,14 @@ it('should test tap', () => {
 
 it('should complete after pipe', async () => {
   const random = Math.random();
-  const s = stackOut(ksOf(0, KsBehaviour.SHARE).pipe(ksMap(() => random)));
+  const s = stackOut(ksOf(0, ksShare).pipe(ksMap(() => random)));
   expect(await s).toEqual(await s);
 });
 
 it('should change behaviour', async () => {
   const numbers = [1, 2];
   const s = ksTimeout(0)
-    .pipe(ksChangeBehaviour(KsBehaviour.SHARE))
+    .pipe(ksChangeBehaviour(ksShare))
     .pipe(ksMap(() => numbers.pop()));
   const a = stackOut(s);
   const b = stackOut(s);
@@ -422,8 +414,8 @@ describe('ksTakeUntil', () => {
   });
 
   it('should test notifier could emit multiple times', async () => {
-    const stop = ksTimeout(2000, KsBehaviour.SHARE).pipe(
-      ksSwitch(() => ksPeriodic(50, KsBehaviour.SHARE).pipe(ksTake(10))),
+    const stop = ksTimeout(2000, ksShare).pipe(
+      ksSwitch(() => ksPeriodic(50, ksShare).pipe(ksTake(10))),
     );
     const a = stackOut(ksPeriodic(50).pipe(ksTakeUntil(stop)));
     const b = stackOut(stop);
@@ -591,9 +583,7 @@ describe('ksDelay', () => {
     const delay = 100;
     const accuracy = 10;
     const now = ksMap(() => Date.now());
-    const org = ksPeriodic(100, KsBehaviour.SHARE_REPLAY)
-      .pipe(now)
-      .pipe(ksTake(10));
+    const org = ksPeriodic(100, ksShareReplay).pipe(now).pipe(ksTake(10));
     const delayed = org.pipe(ksDelay(delay)).pipe(now);
     const zipped = ksZip(org, delayed);
     for (const [a, b] of await stackOut(zipped)) {
@@ -604,7 +594,7 @@ describe('ksDelay', () => {
   });
 
   it('should unsubscribe before delay', () => {
-    const s = ksPeriodic(0, KsBehaviour.SHARE).pipe(ksDelay(1000));
+    const s = ksPeriodic(0, ksShare).pipe(ksDelay(1000));
     expect(s.subscribe({}).unsubscribe()).toBeUndefined();
   });
 });

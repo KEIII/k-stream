@@ -11,9 +11,9 @@ npm i @keiii/k-stream
 
 ## Usage
 ```typescript
-import { ksPeriodic as periodic, KsBehaviour as Behaviour, ksFilter as filter, ksTake as take, Some, None } from "@keiii/k-stream";
+import { ksPeriodic as periodic, ksShare as share, ksFilter as filter, ksTake as take, Some, None } from "@keiii/k-stream";
 
-const stream = periodic(100, Behaviour.SHARE_REPLAY)
+const stream = periodic(100, share)
   .pipe(filter(n => n % 2 === 0 ? Some(n) : None(n)))
   .pipe(take(10));
 
@@ -24,7 +24,7 @@ stream.subscribe({
 ```
 K-Steam provides helper function to create steam from your data source:
 ```typescript
-const stream = ksCreateStream<MouseEvent>(KsBehaviour.SHARE, ({ next, complete }) => {
+const stream = ksCreateStream<MouseEvent>(ksShare, ({ next, complete }) => {
   const handler = (e: MouseEvent) => next(e);
   document.addEventListener("click", handler);
   return { unsubscribe: () => document.removeEventListener("click", handler) };

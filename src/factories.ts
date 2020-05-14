@@ -1,5 +1,6 @@
 import {
   KsBehaviour,
+  ksCold,
   ksCreateStream,
   noop,
   Observable,
@@ -14,7 +15,7 @@ import { Err, Ok, Result } from './ts-result';
  * Observable that immediately completes.
  */
 export const ksEmpty = <T>(): Stream<T> => {
-  return ksCreateStream(KsBehaviour.COLD, ({ complete }) => {
+  return ksCreateStream(ksCold, ({ complete }) => {
     complete();
     return { unsubscribe: noop };
   });
@@ -23,7 +24,7 @@ export const ksEmpty = <T>(): Stream<T> => {
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = <T>(value: T, behaviour = KsBehaviour.COLD): Stream<T> => {
+export const ksOf = <T>(value: T, behaviour = ksCold): Stream<T> => {
   return ksCreateStream<T>(behaviour, ({ next, complete }) => {
     next(value);
     complete();
@@ -164,10 +165,7 @@ export const ksZip = <T1, T2>(
   });
 };
 
-export const ksTimeout = (
-  ms: number,
-  behaviour = KsBehaviour.COLD,
-): Stream<number> => {
+export const ksTimeout = (ms: number, behaviour = ksCold): Stream<number> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     const handler = () => {
       next(0);
@@ -178,10 +176,7 @@ export const ksTimeout = (
   });
 };
 
-export const ksInterval = (
-  ms: number,
-  behaviour = KsBehaviour.COLD,
-): Stream<number> => {
+export const ksInterval = (ms: number, behaviour = ksCold): Stream<number> => {
   return ksCreateStream(behaviour, ({ next }) => {
     let count = 0;
     const handler = () => next(count++);
@@ -190,10 +185,7 @@ export const ksInterval = (
   });
 };
 
-export const ksPeriodic = (
-  ms: number,
-  behaviour = KsBehaviour.COLD,
-): Stream<number> => {
+export const ksPeriodic = (ms: number, behaviour = ksCold): Stream<number> => {
   return ksConcat(
     ksOf(0, behaviour),
     ksInterval(ms, behaviour).pipe(ksMap(n => n + 1)),
@@ -308,7 +300,7 @@ export const ksForkJoin = <T1, T2>(
 
 export const ksFromPromise = <T, E>(
   promise: Promise<T>,
-  behaviour = KsBehaviour.COLD,
+  behaviour = ksCold,
 ): Stream<Result<T, E>> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     let on = true;

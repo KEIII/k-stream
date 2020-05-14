@@ -1,7 +1,8 @@
 import {
   CompleteFn,
-  KsBehaviour,
   ksCreateStream,
+  ksShare,
+  ksShareReplay,
   noop,
   Observer,
   Stream,
@@ -14,7 +15,7 @@ export type Subject<T> = Stream<T> & {
 
 export const ksSubject = <T>(
   initValue: T,
-  behaviour = KsBehaviour.SHARE_REPLAY,
+  behaviour = ksShareReplay,
 ): Subject<T> => {
   const state = { isCompleted: false, current: initValue };
   let subjectObserver: Observer<T> | null = null;
