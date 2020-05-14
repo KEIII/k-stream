@@ -48,6 +48,7 @@ import {
   Some,
   SubscribeFn,
 } from '../src';
+import { ksEmitter } from '../src/emitter';
 
 const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
@@ -575,6 +576,22 @@ describe('ksSubject', () => {
       .pipe(ksMap(n => n * n))
       .pipe(ksTake(1));
     expect(await stackOut(s)).toEqual([25]);
+  });
+});
+
+describe('ksEmitter', () => {
+  it('should test emitter', async () => {
+    const s = ksEmitter();
+    s.next(0);
+    const a = stackOut(s);
+    for (let i = 1; i < 10; ++i) {
+      s.next(i);
+    }
+    const b = stackOut(s);
+    s.complete();
+    expect(await a).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(await b).toEqual([]);
+    expect(await stackOut(s)).toEqual([]);
   });
 });
 

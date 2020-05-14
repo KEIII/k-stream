@@ -28,10 +28,9 @@ export const ksSubject = <T>(
 
   return {
     subscribe: observer => {
-      const { next, complete } = observer;
       if (state.isCompleted) {
-        next?.(state.current);
-        complete?.();
+        observer.next?.(state.current);
+        observer.complete?.();
         return { unsubscribe: noop };
       } else {
         return stream.subscribe(observer);
