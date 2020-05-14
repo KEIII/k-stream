@@ -38,27 +38,17 @@ type UUID = Readonly<{}>;
 
 export const noop = () => {};
 
-export const observerFromPartial = <T>(
-  o: Partial<Observer<T>>,
-): Observer<T> => {
-  return {
-    next: o.next !== undefined ? o.next : noop,
-    complete: o.complete !== undefined ? o.complete : noop,
-  };
-};
-
 const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
   const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>,
+    observer: Partial<Observer<T>>,
   ): Unsubscribable => {
     let isCompleted = false;
-    const observer = observerFromPartial(partialObserver);
     return subscribeFn({
       next: value => {
         if (isCompleted) {
           console.warn('Logic error: Ignore call next on completed stream.');
         } else {
-          observer.next(value);
+          observer.next?.(value);
         }
       },
       complete: () => {
@@ -68,7 +58,7 @@ const createColdStream = <T>(subscribeFn: SubscribeFn<T>): Stream<T> => {
           );
         } else {
           isCompleted = true;
-          observer.complete();
+          observer.complete?.();
         }
       },
     });
@@ -90,7 +80,7 @@ const createShareStream = <T>(
   let isCompleted = false;
   let lastValue = None<T>();
   let subscription: Unsubscribable | null = null;
-  const observersMap = new Map<UUID, Observer<T>>();
+  const observersMap = new Map<UUID, Partial<Observer<T>>>();
 
   const onNext: NextFn<T> = (value: T): void => {
     if (isCompleted) {
@@ -100,7 +90,7 @@ const createShareStream = <T>(
         lastValue = Some(value);
       }
       for (const { next } of observersMap.values()) {
-        next(value);
+        next?.(value);
       }
     }
   };
@@ -111,22 +101,20 @@ const createShareStream = <T>(
     } else {
       isCompleted = true;
       for (const { complete } of observersMap.values()) {
-        complete();
+        complete?.();
       }
     }
   };
 
   const subscribe: SubscribePartialFn<T> = (
-    partialObserver: Partial<Observer<T>>,
+    observer: Partial<Observer<T>>,
   ): Unsubscribable => {
     if (isCompleted) {
       return { unsubscribe: noop };
     }
 
-    const observer = observerFromPartial<T>(partialObserver);
-
     if (replay && lastValue._tag === 'Some') {
-      observer.next(lastValue.some);
+      observer.next?.(lastValue.some);
     }
 
     const subscribeId = Object.freeze({});

@@ -4,7 +4,6 @@ import {
   ksCreateStream,
   noop,
   Observer,
-  observerFromPartial,
   Stream,
 } from './core';
 
@@ -28,10 +27,10 @@ export const ksSubject = <T>(
 
   return {
     subscribe: observer => {
-      const { next, complete } = observerFromPartial(observer);
+      const { next, complete } = observer;
       if (state.isCompleted) {
-        next(state.current);
-        complete();
+        next?.(state.current);
+        complete?.();
         return { unsubscribe: noop };
       } else {
         return stream.subscribe(observer);

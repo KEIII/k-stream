@@ -4,7 +4,6 @@ import {
   ksCreateStream,
   NextFn,
   Observer,
-  observerFromPartial,
   Stream,
   TransformFn,
   Unsubscribable,
@@ -49,18 +48,17 @@ export const ksMapTo = <T, O>(value: O): TransformFn<T, O> => {
  * Transparently perform actions or side-effects, such as logging.
  */
 export const ksTap = <T>(
-  tapPartialObserver: Partial<Observer<T>>,
+  tapObserver: Partial<Observer<T>>,
 ): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      const tapObserver = observerFromPartial(tapPartialObserver);
       return stream.subscribe({
         next: value => {
-          tapObserver.next(value);
+          tapObserver.next?.(value);
           next(value);
         },
         complete: () => {
-          tapObserver.complete();
+          tapObserver.complete?.();
           complete();
         },
       });
