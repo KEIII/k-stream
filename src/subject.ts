@@ -2,6 +2,7 @@ import {
   CompleteFn,
   ksCreateStream,
   ksShareReplay,
+  NextFn,
   noop,
   Observer,
   Stream,
@@ -9,6 +10,7 @@ import {
 
 export type Subject<T> = Stream<T> & {
   value: T;
+  readonly next: NextFn<T>;
   readonly complete: CompleteFn;
 };
 
@@ -24,6 +26,17 @@ export const ksSubject = <T>(
     subjectObserver.next(state.current);
     return { unsubscribe: () => (subjectObserver = null) };
   });
+
+  const next = (value: T) => {
+    if (state.isCompleted) {
+      console.warn('Logic error: Ignore call next on completed stream.');
+    } else {
+      state.current = value;
+      if (subjectObserver !== null) {
+        subjectObserver.next(value);
+      }
+    }
+  };
 
   return {
     subscribe: observer => {
@@ -43,15 +56,9 @@ export const ksSubject = <T>(
         subjectObserver.complete();
       }
     },
+    next,
     set value(value: T) {
-      if (state.isCompleted) {
-        console.warn('Logic error: Ignore call next on completed stream.');
-      } else {
-        state.current = value;
-        if (subjectObserver !== null) {
-          subjectObserver.next(value);
-        }
-      }
+      next(value);
     },
     get value() {
       return state.current;
