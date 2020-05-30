@@ -1,18 +1,25 @@
-import { ksCreateStream, ksShareReplay, noop, } from './core';
-export const ksSubject = (initValue, behaviour = ksShareReplay) => {
-    const state = { isCompleted: false, current: initValue };
+import { ksCreateStream, noop, ksShare, } from './core';
+export const ksSubject = (behaviour = ksShare) => {
+    let isCompleted = false;
     let subjectObserver = null;
-    const stream = ksCreateStream(behaviour, observer => {
-        subjectObserver = observer;
-        subjectObserver.next(state.current);
-        return { unsubscribe: () => (subjectObserver = null) };
+    const next = (value) => {
+        if (!isCompleted) {
+            subjectObserver === null || subjectObserver === void 0 ? void 0 : subjectObserver.next(value);
+        }
+    };
+    const complete = () => {
+        isCompleted = true;
+        subjectObserver === null || subjectObserver === void 0 ? void 0 : subjectObserver.complete();
+    };
+    const stream = ksCreateStream(behaviour, o => {
+        subjectObserver = o;
+        return { unsubscribe: noop };
     });
     return {
         subscribe: observer => {
-            var _a, _b;
-            if (state.isCompleted) {
-                (_a = observer.next) === null || _a === void 0 ? void 0 : _a.call(observer, state.current);
-                (_b = observer.complete) === null || _b === void 0 ? void 0 : _b.call(observer);
+            var _a;
+            if (isCompleted) {
+                (_a = observer.complete) === null || _a === void 0 ? void 0 : _a.call(observer);
                 return { unsubscribe: noop };
             }
             else {
@@ -21,26 +28,8 @@ export const ksSubject = (initValue, behaviour = ksShareReplay) => {
         },
         pipe: stream.pipe,
         behaviour: stream.behaviour,
-        complete: () => {
-            state.isCompleted = true;
-            if (subjectObserver !== null) {
-                subjectObserver.complete();
-            }
-        },
-        set value(value) {
-            if (state.isCompleted) {
-                console.warn('Logic error: Ignore call next on completed stream.');
-            }
-            else {
-                state.current = value;
-                if (subjectObserver !== null) {
-                    subjectObserver.next(value);
-                }
-            }
-        },
-        get value() {
-            return state.current;
-        },
+        next,
+        complete,
     };
 };
 //# sourceMappingURL=subject.js.map
