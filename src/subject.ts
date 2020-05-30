@@ -1,47 +1,41 @@
 import {
   CompleteFn,
-  ksCreateStream,
-  ksShareReplay,
   NextFn,
-  noop,
   Observer,
   Stream,
+  ksCreateStream,
+  noop,
+  ksShare,
 } from './core';
 
 export type Subject<T> = Stream<T> & {
-  value: T;
-  readonly next: NextFn<T>;
+  readonly next: (value: T) => void;
   readonly complete: CompleteFn;
 };
 
-export const ksSubject = <T>(
-  initValue: T,
-  behaviour = ksShareReplay,
-): Subject<T> => {
-  const state = { isCompleted: false, current: initValue };
+export const ksSubject = <T>(behaviour = ksShare): Subject<T> => {
+  let isCompleted = false;
   let subjectObserver: Observer<T> | null = null;
 
-  const stream = ksCreateStream<T>(behaviour, observer => {
-    subjectObserver = observer;
-    subjectObserver.next(state.current);
-    return { unsubscribe: () => (subjectObserver = null) };
-  });
-
-  const next = (value: T) => {
-    if (state.isCompleted) {
-      console.warn('Logic error: Ignore call next on completed stream.');
-    } else {
-      state.current = value;
-      if (subjectObserver !== null) {
-        subjectObserver.next(value);
-      }
+  const next: NextFn<T> = (value: T) => {
+    if (!isCompleted) {
+      subjectObserver?.next(value);
     }
   };
 
+  const complete: CompleteFn = () => {
+    isCompleted = true;
+    subjectObserver?.complete();
+  };
+
+  const stream = ksCreateStream<T>(behaviour, o => {
+    subjectObserver = o;
+    return { unsubscribe: noop };
+  });
+
   return {
     subscribe: observer => {
-      if (state.isCompleted) {
-        observer.next?.(state.current);
+      if (isCompleted) {
         observer.complete?.();
         return { unsubscribe: noop };
       } else {
@@ -50,18 +44,7 @@ export const ksSubject = <T>(
     },
     pipe: stream.pipe,
     behaviour: stream.behaviour,
-    complete: () => {
-      state.isCompleted = true;
-      if (subjectObserver !== null) {
-        subjectObserver.complete();
-      }
-    },
     next,
-    set value(value: T) {
-      next(value);
-    },
-    get value() {
-      return state.current;
-    },
+    complete,
   };
 };

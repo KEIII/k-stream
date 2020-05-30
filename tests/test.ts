@@ -32,7 +32,7 @@ import {
   ksScan,
   ksShare,
   ksShareReplay,
-  ksSubject,
+  ksBehaviourSubject,
   ksSwitch,
   ksTake,
   ksTakeUntil,
@@ -47,8 +47,8 @@ import {
   Ok,
   Some,
   SubscribeFn,
+  ksSubject,
 } from '../src';
-import { ksEmitter } from '../src/emitter';
 
 const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
@@ -499,10 +499,10 @@ it('should works like RxJS (in some cases ;)', async () => {
   expect(aaa.slice(0, size)).toEqual(bbb.slice(0, size));
 });
 
-describe('ksSubject', () => {
+describe('ksBehaviourSubject', () => {
   it('should emit last value after subscribe', async () => {
     const r = { v: 0, c: false, emitted: false };
-    const s = ksSubject(0);
+    const s = ksBehaviourSubject(0);
     s.value++;
     s.value++;
     s.complete();
@@ -522,8 +522,8 @@ describe('ksSubject', () => {
     expect(r).toEqual({ v: 2, c: true, emitted: true });
   });
 
-  it('should test subject', async () => {
-    const s = ksSubject(-1);
+  it('should test behaviour subject', async () => {
+    const s = ksBehaviourSubject(-1);
     s.next(0);
     const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
@@ -537,7 +537,7 @@ describe('ksSubject', () => {
   });
 
   it('should unsubscribe properly', () => {
-    const s = ksSubject(0);
+    const s = ksBehaviourSubject(0);
     let count = 0;
     const next = () => count++;
     s.value++;
@@ -549,7 +549,7 @@ describe('ksSubject', () => {
   });
 
   it('should not emit values after complete', async () => {
-    const s = ksSubject(1);
+    const s = ksBehaviourSubject(1);
     const a = stackOut(s);
     s.complete();
     s.value = 2;
@@ -558,7 +558,7 @@ describe('ksSubject', () => {
   });
 
   it('should emit same values on multiple subscription', async () => {
-    const s = ksSubject(0);
+    const s = ksBehaviourSubject(0);
     const a = stackOut(s);
     const b = stackOut(s);
     s.value++;
@@ -568,20 +568,20 @@ describe('ksSubject', () => {
   });
 
   it('should accept partial observer', () => {
-    expect(ksSubject(0).subscribe({}).unsubscribe()).toBeUndefined();
+    expect(ksBehaviourSubject(0).subscribe({}).unsubscribe()).toBeUndefined();
   });
 
   it('should emit current value after subscribe', async () => {
-    const s = ksSubject(5)
+    const s = ksBehaviourSubject(5)
       .pipe(ksMap(n => n * n))
       .pipe(ksTake(1));
     expect(await stackOut(s)).toEqual([25]);
   });
 });
 
-describe('ksEmitter', () => {
-  it('should test emitter', async () => {
-    const s = ksEmitter();
+describe('ksSubject', () => {
+  it('should test subject', async () => {
+    const s = ksSubject();
     s.next(0);
     const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
