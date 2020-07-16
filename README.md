@@ -32,7 +32,7 @@ const stream = ksCreateStream<MouseEvent>(ksShare, ({ next, complete }) => {
 ```
 
 ## Goals
-- “Hot” streams stay “hot” after pipe usage
+- “Hot” streams stay “hot” after pipe usage (https://github.com/ReactiveX/rxjs/issues/1148)
 - Do not lose type information
 - RxJS similar
 
