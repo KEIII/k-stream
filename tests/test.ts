@@ -234,6 +234,13 @@ describe('ksShareReplay', () => {
     s.subscribe({});
     expect(s.lastValue).toEqual(42);
   });
+
+  it('should try to emit last value with blank observer', async () => {
+    const s = ksPeriodic(0, ksShareReplay).pipe(ksTake(2));
+    s.subscribe({});
+    s.subscribe({});
+    expect(await stackOut(s)).toEqual([0, 1]);
+  });
 });
 
 describe('ksTimeout', () => {
@@ -266,13 +273,20 @@ describe('ksMapTo', () => {
   });
 });
 
-it('should test tap', () => {
-  const r = { v: 0, c: false };
-  const s = ksOf(1).pipe(
-    ksTap({ next: v => (r.v = v), complete: () => (r.c = true) }),
-  );
-  s.subscribe({}).unsubscribe();
-  expect(r).toEqual({ v: 1, c: true });
+describe('ksTap', () => {
+  it('should test tap', () => {
+    const r = { v: 0, c: false };
+    const s = ksOf(1)
+      .pipe(
+        ksTap({
+          next: v => (r.v = v),
+          complete: () => (r.c = true),
+        }),
+      )
+      .pipe(ksTap({}));
+    s.subscribe({}).unsubscribe();
+    expect(r).toEqual({ v: 1, c: true });
+  });
 });
 
 it('should complete after pipe', async () => {
@@ -575,6 +589,13 @@ describe('ksBehaviourSubject', () => {
     expect(await a).toEqual([1]);
   });
 
+  it('should test subscribe blank observer after complete', async () => {
+    const s = ksBehaviourSubject(1);
+    s.complete();
+    s.subscribe({});
+    expect(await stackOut(s)).toEqual([1]);
+  });
+
   it('should emit same values on multiple subscription', async () => {
     const s = ksBehaviourSubject(0);
     const a = stackOut(s);
@@ -609,6 +630,15 @@ describe('ksSubject', () => {
     s.complete();
     expect(await a).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(await b).toEqual([]);
+    expect(await stackOut(s)).toEqual([]);
+  });
+
+  it('should test subscribe after complete', async () => {
+    const s = ksSubject();
+    s.complete();
+    s.subscribe({});
+    s.subscribe({ next: noop, complete: noop });
+    s.next(42);
     expect(await stackOut(s)).toEqual([]);
   });
 });
