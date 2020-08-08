@@ -8,8 +8,8 @@ jobs:
     name: npm-publish
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout repository
-      uses: actions/checkout
+    - name: Checkout repository@master
+      uses: actions/checkout@master
     - name: Set up Node.js
       uses: actions/setup-node
       with:
