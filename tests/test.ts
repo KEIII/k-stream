@@ -128,6 +128,12 @@ describe('ksCold', () => {
     const b = stackOut(s);
     expect((await a)[0] !== (await b)[0]).toBeTruthy();
   });
+
+  it('should not return last emitted value', () => {
+    const s = ksOf(42, ksCold);
+    s.subscribe({});
+    expect(s.lastValue).toBeUndefined();
+  });
 });
 
 describe('ksShare', () => {
@@ -191,6 +197,12 @@ describe('ksShare', () => {
     expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
     expect(await sb).toEqual([4, 16, 36, 64, 100, 144, 196, 256, 324]);
   });
+
+  it('should not return last emitted value', () => {
+    const s = ksOf(42, ksShare);
+    s.subscribe({});
+    expect(s.lastValue).toBeUndefined();
+  });
 });
 
 describe('ksShareReplay', () => {
@@ -215,6 +227,12 @@ describe('ksShareReplay', () => {
     const sb = stackOut(b);
     expect(await sa).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);
     expect(await sb).toEqual([0, 4, 16, 36, 64, 100, 144, 196, 256, 324]);
+  });
+
+  it('should return last emitted value', () => {
+    const s = ksOf(42, ksShareReplay);
+    s.subscribe({});
+    expect(s.lastValue).toEqual(42);
   });
 });
 
