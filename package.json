@@ -17,7 +17,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KEIII/k-stream.git"
+    "url": "https://github.com/KEIII/k-stream.git"
   },
   "author": "Ivan Kasenkov <kacenkov7@gmail.com>",
   "bugs": {
