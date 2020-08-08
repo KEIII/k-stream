@@ -9,18 +9,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout repository
-      uses: actions/checkout@master
+      uses: actions/checkout@v2
     - name: Set up Node.js
-      uses: actions/setup-node@master
+      uses: actions/setup-node@v2
       with:
         node-version: 12
-    - name: Install deependencies
-      run: npm install
-    - name: Run tests
-      run: npm test
-    - name: Build
-      run: npm run build
-    - name: Publish if version has been updated
-      run: npm publish --access public
+    - run: npm install
+    - run: npm run build
+    - run: npm publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
