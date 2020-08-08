@@ -23,8 +23,7 @@ jobs:
     - name: Publish if version has been updated
       uses: pascalgn/npm-publish-action@1.3.3
       with:
-        tag_name: "v%s"
-        workspace: "."
+        commit_pattern: "^Release (\\S+)"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Leave this as is, it's automatically generated
         NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
