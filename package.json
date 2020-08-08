@@ -12,7 +12,7 @@
     "test": "jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
     "prettier": "prettier --write ./src/*.ts",
-    "version-patch": "npm version patch --message=\"Release %s\""
+    "version-patch": "npm version patch"
   },
   "license": "MIT",
   "repository": {
