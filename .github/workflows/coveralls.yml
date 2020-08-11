@@ -1,0 +1,21 @@
+name: test-coveralls
+on:
+  - push
+  - pull_request
+jobs:
+  build:
+    name: test-coveralls
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+        run: |
+          npm install
+          npm run coveralls
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

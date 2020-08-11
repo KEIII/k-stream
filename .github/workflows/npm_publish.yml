@@ -1,0 +1,22 @@
+name: npm-publish
+on:
+  push:
+    tags:
+      - v*.*.*
+jobs:
+  npm-publish:
+    name: npm-publish
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+      - name: Set up Node.js
+        uses: actions/setup-node@master
+        with:
+          node-version: 12
+      - run: |
+          npm install
+          npm run build
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}

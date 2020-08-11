@@ -2,7 +2,6 @@
 K-Stream is ~~yet another~~ a library for reactive programming using Observables, to make it easier to compose asynchronous or callback-based code.
 
 [![npm (scoped)](https://img.shields.io/npm/v/@keiii/k-stream?color=blue)](https://www.npmjs.com/package/@keiii/k-stream) 
-[![Build Status](https://travis-ci.com/KEIII/k-stream.svg?branch=master)](https://travis-ci.com/KEIII/k-stream) 
 [![Coverage Status](https://coveralls.io/repos/github/KEIII/k-stream/badge.svg?branch=master)](https://coveralls.io/github/KEIII/k-stream?branch=master)
 
 ```sh
