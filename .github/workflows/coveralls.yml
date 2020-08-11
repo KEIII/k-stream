@@ -14,7 +14,7 @@ jobs:
           node-version: 12
       - run: |
           npm install
-          npm run coveralls
+          npm run jest --coverage
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
