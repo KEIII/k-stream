@@ -46,8 +46,9 @@ import {
   some,
   SubscriberFn,
   ksSubject,
+  right,
+  left,
 } from '../src';
-import { left, right } from '../src/either';
 
 const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
@@ -178,7 +179,7 @@ describe('ksShare', () => {
       setTimeout(() => {
         stream.pipe(ksTake(1)).subscribe({ next: resolve });
         sub.unsubscribe();
-      }, 1000);
+      }, 1_000);
     });
     expect(await p).toEqual(9);
   });
@@ -209,7 +210,7 @@ describe('ksShareReplay', () => {
       setTimeout(() => {
         stream.pipe(ksTake(1)).subscribe({ next: resolve });
         sub.unsubscribe();
-      }, 1000);
+      }, 1_000);
     });
     expect(await p).toEqual(8);
   });
@@ -344,10 +345,10 @@ describe('ksCombineLatest', () => {
     const limit = 100;
     const ms = 5;
     const s = ksPeriodic(ms).pipe(ksTake(limit));
-    const r = timer(0, ms).pipe(take(limit));
-    expect(await stackOut(ksCombineLatest(s, s))).toEqual(
-      await stackOut(combineLatest([r, r])),
-    );
+    const a = await stackOut(ksCombineLatest(s, s));
+    const rxjsStream = timer(0, ms).pipe(take(limit));
+    const b = await stackOut(combineLatest([rxjsStream, rxjsStream]));
+    expect(a).toEqual(b);
   });
 });
 
@@ -371,7 +372,7 @@ describe('ksThrottle', () => {
 
 describe('ksDebounce', () => {
   it('should test debounce', async () => {
-    const s = ksPeriodic(10).pipe(ksTake(100)).pipe(ksDebounce(1000));
+    const s = ksPeriodic(10).pipe(ksTake(100)).pipe(ksDebounce(1_000));
 
     expect(await stackOut(s)).toEqual([99]);
   });
@@ -432,18 +433,18 @@ describe('ksSwitch', () => {
 describe('ksTakeUntil', () => {
   it('should complete main stream before notifier emits', async () => {
     const random = Math.random();
-    const s = ksOf(random).pipe(ksTakeUntil(ksTimeout(1000)));
+    const s = ksOf(random).pipe(ksTakeUntil(ksTimeout(1_000)));
     expect(await stackOut(s)).toEqual([random]);
   });
 
   it('should complete main stream after notifier emits', async () => {
-    const stop = ksTimeout(2000);
+    const stop = ksTimeout(2_000);
     const s = ksPeriodic(100).pipe(ksTakeUntil(stop));
     expect((await stackOut(s)).pop()).toBe(19);
   });
 
   it('should test notifier could emit multiple times', async () => {
-    const stop = ksTimeout(2000, ksShare).pipe(
+    const stop = ksTimeout(2_000, ksShare).pipe(
       ksSwitch(() => ksPeriodic(50, ksShare).pipe(ksTake(10))),
     );
     const a = stackOut(ksPeriodic(50).pipe(ksTakeUntil(stop)));
@@ -655,7 +656,7 @@ describe('ksDelay', () => {
   });
 
   it('should unsubscribe before delay', () => {
-    const s = ksPeriodic(0, ksShare).pipe(ksDelay(1000));
+    const s = ksPeriodic(0, ksShare).pipe(ksDelay(1_000));
     expect(s.subscribe({}).unsubscribe()).toBeUndefined();
   });
 });

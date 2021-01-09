@@ -23,10 +23,10 @@ stream.subscribe({
 ```
 K-Steam provides helper function to create steam from your data source:
 ```typescript
-const stream = ksCreateStream<MouseEvent>(ksShare, ({ next, complete }) => {
-  const handler = (e: MouseEvent) => next(e);
-  document.addEventListener("click", handler);
-  return { unsubscribe: () => document.removeEventListener("click", handler) };
+const stream = ksCreateStream<MouseEvent>(ksShare, observer => {
+  const handler = (e: MouseEvent) => observer.next(e);
+  document.addEventListener('click', handler);
+  return { unsubscribe: () => document.removeEventListener('click', handler) };
 });
 ```
 

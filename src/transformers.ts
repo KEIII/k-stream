@@ -7,6 +7,7 @@ import {
   Stream,
   TransformFn,
   Unsubscribable,
+  lazySubscription,
 } from './core';
 import { some, none, Option, isSome } from './option';
 
@@ -155,7 +156,6 @@ export const ksTakeUntil = <T>(
     const newStream = ksCreateStream<T>(
       stream.behaviour,
       ({ next, complete }) => {
-        let notified = false;
         let isCompleted = false;
 
         const mainSubscription = stream.subscribe({
@@ -169,32 +169,37 @@ export const ksTakeUntil = <T>(
         if (isCompleted) {
           return mainSubscription;
         } else {
-          const terminate = () => {
-            if (!notified) {
-              notified = true;
-              complete();
-              mainSubscription.unsubscribe();
-              setTimeout(() => notifierSubscription.unsubscribe());
-            }
-          };
-          const notifierSubscription = notifier.subscribe({
-            next: terminate,
-            complete: terminate,
-          });
+          let isTerminated = false;
+          const notifierSubscription = lazySubscription();
 
-          return {
-            unsubscribe: () => {
-              notifierSubscription.unsubscribe();
-              mainSubscription.unsubscribe();
-            },
+          const unsubscribe = () => {
+            notifierSubscription.unsubscribe();
+            mainSubscription.unsubscribe();
           };
+
+          const terminate = () => {
+            if (isTerminated) return;
+            isTerminated = true;
+            complete();
+            unsubscribe();
+          };
+
+          notifierSubscription.resolve(
+            notifier.subscribe({
+              next: terminate,
+              complete: terminate,
+            }),
+          );
+
+          return { unsubscribe };
         }
       },
     );
+
     return {
       ...newStream,
       pipe: () => {
-        throw 'Disallows the application of operators after takeUntil. Operators placed after takeUntil can effect subscription leaks.';
+        throw 'Disallows the application of operators after `takeUntil`. Operators placed after `takeUntil` can effect subscription leaks.';
       },
     };
   };
@@ -206,19 +211,32 @@ export const ksTakeUntil = <T>(
 export const ksTake = <T>(count: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+      let isCompleted = false;
       let counter = 0;
 
-      const tryNext: NextFn<T> = value => {
+      const subscription = lazySubscription();
+
+      const onComplete = () => {
+        if (isCompleted) return;
+        isCompleted = true;
+        complete();
+        subscription.unsubscribe();
+      };
+
+      const onNext: NextFn<T> = value => {
+        if (isCompleted) return;
         next(value);
         if (++counter >= count) {
-          complete();
-          setTimeout(() => subscription.unsubscribe());
+          onComplete();
         }
       };
 
-      const subscription = stream.subscribe({ next: tryNext, complete });
-
-      return subscription;
+      return subscription.resolve(
+        stream.subscribe({
+          next: onNext,
+          complete: onComplete,
+        }),
+      );
     });
   };
 };
@@ -231,16 +249,31 @@ export const ksTakeWhile = <T>(
 ): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      return stream.subscribe({
-        next: value => {
-          if (predicate(value)) {
-            next(value);
-          } else {
-            complete();
-          }
-        },
-        complete,
-      });
+      let isCompleted = false;
+      const s = lazySubscription();
+
+      const onComplete = () => {
+        if (isCompleted) return;
+        isCompleted = true;
+        complete();
+        s.unsubscribe();
+      };
+
+      const onNext: NextFn<T> = value => {
+        if (isCompleted) return;
+        if (predicate(value)) {
+          next(value);
+        } else {
+          onComplete();
+        }
+      };
+
+      return s.resolve(
+        stream.subscribe({
+          next: onNext,
+          complete: onComplete,
+        }),
+      );
     });
   };
 };

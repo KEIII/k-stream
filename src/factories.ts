@@ -2,10 +2,10 @@ import {
   asyncScheduler,
   ksCold,
   ksCreateStream,
+  lazySubscription,
   noop,
   Observable,
   Stream,
-  Unsubscribable,
 } from './core';
 import { ksMap } from './transformers';
 import { isSome, none, Option, some } from './option';
@@ -40,25 +40,19 @@ export const ksConcat = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let subscription2: Unsubscribable | null = null;
+    const subscription2 = lazySubscription();
 
     const subscription1 = stream1.subscribe({
       next,
       complete: () => {
-        subscription2 = stream2.subscribe({ next, complete });
+        subscription2.resolve(stream2.subscribe({ next, complete }));
       },
     });
 
-    const tryUnsubscribeSecond = () => {
-      if (subscription2 !== null) {
-        subscription2.unsubscribe();
-      }
-    };
-
     return {
       unsubscribe: () => {
+        subscription2.unsubscribe();
         subscription1.unsubscribe();
-        tryUnsubscribeSecond();
       },
     };
   });
@@ -72,37 +66,47 @@ export const ksMerge = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
+    const subscription1 = lazySubscription();
+    const subscription2 = lazySubscription();
+
+    const unsubscribe = () => {
+      subscription2.unsubscribe();
+      subscription1.unsubscribe();
+    };
 
     const tryComplete = () => {
+      if (isCompleted) return;
       if (completed1 && completed2) {
+        isCompleted = true;
         complete();
+        unsubscribe();
       }
     };
 
-    const subscription1 = stream1.subscribe({
-      next,
-      complete: () => {
-        completed1 = true;
-        tryComplete();
-      },
-    });
+    subscription1.resolve(
+      stream1.subscribe({
+        next,
+        complete: () => {
+          completed1 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    const subscription2 = stream2.subscribe({
-      next,
-      complete: () => {
-        completed2 = true;
-        tryComplete();
-      },
-    });
+    subscription2.resolve(
+      stream2.subscribe({
+        next,
+        complete: () => {
+          completed2 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    return {
-      unsubscribe: () => {
-        subscription1.unsubscribe();
-        subscription2.unsubscribe();
-      },
-    };
+    return { unsubscribe };
   });
 };
 
@@ -114,54 +118,65 @@ export const ksZip = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     const queue1: T1[] = [];
     const queue2: T2[] = [];
+    const subscription1 = lazySubscription();
+    const subscription2 = lazySubscription();
+
+    const unsubscribe = () => {
+      subscription2.unsubscribe();
+      subscription1.unsubscribe();
+    };
 
     const tryNext = () => {
+      if (isCompleted) return;
       if (queue1.length > 0 && queue2.length > 0) {
         next([queue1.shift() as T1, queue2.shift() as T2]);
       }
     };
 
     const tryComplete = () => {
+      if (isCompleted) return;
       if (
         (completed1 && queue1.length === 0) ||
         (completed2 && queue2.length === 0)
       ) {
+        isCompleted = true;
         complete();
+        unsubscribe();
       }
     };
 
-    const subscription1 = stream1.subscribe({
-      next: value => {
-        queue1.push(value);
-        tryNext();
-      },
-      complete: () => {
-        completed1 = true;
-        tryComplete();
-      },
-    });
+    subscription1.resolve(
+      stream1.subscribe({
+        next: value => {
+          queue1.push(value);
+          tryNext();
+        },
+        complete: () => {
+          completed1 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    const subscription2 = stream2.subscribe({
-      next: value => {
-        queue2.push(value);
-        tryNext();
-      },
-      complete: () => {
-        completed2 = true;
-        tryComplete();
-      },
-    });
+    subscription2.resolve(
+      stream2.subscribe({
+        next: value => {
+          queue2.push(value);
+          tryNext();
+        },
+        complete: () => {
+          completed2 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    return {
-      unsubscribe: () => {
-        subscription1.unsubscribe();
-        subscription2.unsubscribe();
-      },
-    };
+    return { unsubscribe };
   });
 };
 
@@ -179,12 +194,23 @@ export const ksTimeout = (
   });
 };
 
-export const ksInterval = (ms: number, behaviour = ksCold): Stream<number> => {
+export const ksInterval = (
+  ms: number,
+  behaviour = ksCold,
+  scheduler = asyncScheduler,
+): Stream<number> => {
   return ksCreateStream(behaviour, ({ next }) => {
     let count = 0;
-    const handler = () => next(count++);
-    const intervalId = setInterval(handler, ms);
-    return { unsubscribe: () => clearInterval(intervalId) };
+    let unsubscribe: (() => void) | null = null;
+    const tick = () => {
+      unsubscribe = scheduler.schedule(handler, ms).unsubscribe;
+    };
+    const handler = () => {
+      next(count++);
+      tick();
+    };
+    tick();
+    return { unsubscribe: () => unsubscribe?.() };
   });
 };
 
@@ -203,51 +229,62 @@ export const ksCombineLatest = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     let value1 = none<T1>();
     let value2 = none<T2>();
+    const subscription1 = lazySubscription();
+    const subscription2 = lazySubscription();
+
+    const unsubscribe = () => {
+      subscription2.unsubscribe();
+      subscription1.unsubscribe();
+    };
 
     const tryNext = () => {
+      if (isCompleted) return;
       if (isSome(value1) && isSome(value2)) {
         return next([value1.value, value2.value]);
       }
     };
 
     const tryComplete = () => {
+      if (isCompleted) return;
       if (completed1 && completed2) {
+        isCompleted = true;
         complete();
+        unsubscribe();
       }
     };
 
-    const subscription1 = stream1.subscribe({
-      next: value => {
-        value1 = some(value);
-        tryNext();
-      },
-      complete: () => {
-        completed1 = true;
-        tryComplete();
-      },
-    });
+    subscription1.resolve(
+      stream1.subscribe({
+        next: value => {
+          value1 = some(value);
+          tryNext();
+        },
+        complete: () => {
+          completed1 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    const subscription2 = stream2.subscribe({
-      next: value => {
-        value2 = some(value);
-        tryNext();
-      },
-      complete: () => {
-        completed2 = true;
-        tryComplete();
-      },
-    });
+    subscription2.resolve(
+      stream2.subscribe({
+        next: value => {
+          value2 = some(value);
+          tryNext();
+        },
+        complete: () => {
+          completed2 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    return {
-      unsubscribe: () => {
-        subscription1.unsubscribe();
-        subscription2.unsubscribe();
-      },
-    };
+    return { unsubscribe };
   });
 };
 
@@ -259,40 +296,49 @@ export const ksForkJoin = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
+    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     let value1 = none<T1>();
     let value2 = none<T2>();
+    const subscription1 = lazySubscription();
+    const subscription2 = lazySubscription();
+
+    const unsubscribe = () => {
+      subscription2.unsubscribe();
+      subscription1.unsubscribe();
+    };
 
     const tryComplete = () => {
+      if (isCompleted) return;
       if (completed1 && completed2 && isSome(value1) && isSome(value2)) {
         next([value1.value, value2.value]);
         complete();
+        unsubscribe();
       }
     };
 
-    const subscription1 = stream1.subscribe({
-      next: value => (value1 = some(value)),
-      complete: () => {
-        completed1 = true;
-        tryComplete();
-      },
-    });
+    subscription1.resolve(
+      stream1.subscribe({
+        next: value => (value1 = some(value)),
+        complete: () => {
+          completed1 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    const subscription2 = stream2.subscribe({
-      next: value => (value2 = some(value)),
-      complete: () => {
-        completed2 = true;
-        tryComplete();
-      },
-    });
+    subscription2.resolve(
+      stream2.subscribe({
+        next: value => (value2 = some(value)),
+        complete: () => {
+          completed2 = true;
+          tryComplete();
+        },
+      }),
+    );
 
-    return {
-      unsubscribe: () => {
-        subscription1.unsubscribe();
-        subscription2.unsubscribe();
-      },
-    };
+    return { unsubscribe };
   });
 };
 

@@ -44,6 +44,22 @@ export const asyncScheduler: Scheduler = {
   },
 };
 
+export const lazySubscription = () => {
+  let resolve: (s: Unsubscribable) => void;
+  const promise = new Promise<Unsubscribable>(r => {
+    resolve = r;
+  });
+  return {
+    resolve: (s: Unsubscribable) => {
+      resolve(s);
+      return s;
+    },
+    unsubscribe: () => {
+      promise.then(s => s.unsubscribe());
+    },
+  };
+};
+
 /**
  * Create source on each subscription.
  */
@@ -93,7 +109,7 @@ const createShareStream = <T>(
 
   const onNext: NextFn<T> = value => {
     if (isCompleted) {
-      console.warn('Logic error: Ignore call next on completed stream.');
+      console.warn('Logic error: Ignore call `next` on completed stream.');
     } else {
       if (replay) {
         lastValue = some(value);
@@ -104,7 +120,7 @@ const createShareStream = <T>(
 
   const onComplete: CompleteFn = () => {
     if (isCompleted) {
-      console.warn('Logic error: Ignore call complete on completed stream.');
+      console.warn('Logic error: Ignore call `complete` on completed stream.');
     } else {
       isCompleted = true;
       observersMap.forEach(observer => observer.complete?.());
