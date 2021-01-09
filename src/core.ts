@@ -1,4 +1,4 @@
-import { Some, None } from './ts-option';
+import { some, none, isSome } from './option';
 
 export type Unsubscribable = { readonly unsubscribe: () => void };
 
@@ -87,7 +87,7 @@ const createShareStream = <T>(
   replay: boolean,
 ): Stream<T> => {
   let isCompleted = false;
-  let lastValue = None<T>();
+  let lastValue = none<T>();
   let subscription: Unsubscribable | null = null;
   const observersMap = new Map<Symbol, Partial<Observer<T>>>();
 
@@ -96,7 +96,7 @@ const createShareStream = <T>(
       console.warn('Logic error: Ignore call next on completed stream.');
     } else {
       if (replay) {
-        lastValue = Some(value);
+        lastValue = some(value);
       }
       observersMap.forEach(observer => observer.next?.(value));
     }
@@ -116,8 +116,8 @@ const createShareStream = <T>(
       return { unsubscribe: noop };
     }
 
-    if (replay && lastValue._tag === 'Some') {
-      observer.next?.(lastValue.some);
+    if (replay && isSome(lastValue)) {
+      observer.next?.(lastValue.value);
     }
 
     const subscribeId = Symbol();
@@ -126,7 +126,7 @@ const createShareStream = <T>(
       observersMap.delete(subscribeId);
       if (observersMap.size === 0) {
         if (replay) {
-          lastValue = None();
+          lastValue = none();
         }
         if (subscription !== null) {
           subscription.unsubscribe();
@@ -153,7 +153,7 @@ const createShareStream = <T>(
     pipe: transformFn => transformFn(stream),
     behaviour: replay ? ksShareReplay : ksShare,
     get lastValue() {
-      return lastValue._tag === 'Some' ? lastValue.some : undefined;
+      return isSome(lastValue) ? lastValue.value : undefined;
     },
   };
 

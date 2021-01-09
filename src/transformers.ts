@@ -8,7 +8,7 @@ import {
   TransformFn,
   Unsubscribable,
 } from './core';
-import { Some, None, Option } from './ts-option';
+import { some, none, Option, isSome } from './option';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -69,16 +69,16 @@ export const ksTap = <T>(
 /**
  * Emit values that pass the provided condition.
  */
-export const ksFilter = <T, O>(
+export const ksFilterMap = <T, O>(
   select: (value: T) => Option<O>,
 ): TransformFn<T, O> => {
   return (stream: Stream<T>): Stream<O> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       return stream.subscribe({
-        next: (value: T) => {
-          const o = select(value);
-          if (o._tag === 'Some') {
-            next(o.some);
+        next: value => {
+          const opt = select(value);
+          if (isSome(opt)) {
+            next(opt.value);
           }
         },
         complete,
@@ -292,17 +292,17 @@ export const ksDebounce = <T>(dueTime: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       let timeoutId: TimeoutId;
-      let lastValue = None<T>();
+      let lastValue = none<T>();
 
       const tryNext = () => {
-        if (lastValue._tag === 'Some') {
-          next(lastValue.some);
-          lastValue = None();
+        if (isSome(lastValue)) {
+          next(lastValue.value);
+          lastValue = none();
         }
       };
 
       const debounceNext: NextFn<T> = value => {
-        lastValue = Some(value);
+        lastValue = some(value);
         clearTimeout(timeoutId);
         timeoutId = setTimeout(tryNext, dueTime);
       };
@@ -336,17 +336,17 @@ export const ksThrottle = <T>(duration: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       let executedTime = Number.MIN_SAFE_INTEGER;
-      let lastValue = None<T>();
+      let lastValue = none<T>();
 
       const tryNext = () => {
-        if (lastValue._tag === 'Some') {
-          next(lastValue.some);
-          lastValue = None();
+        if (isSome(lastValue)) {
+          next(lastValue.value);
+          lastValue = none();
         }
       };
 
       const throttleNext: NextFn<T> = value => {
-        lastValue = Some(value);
+        lastValue = some(value);
         const now = Date.now();
         const diff = now - executedTime;
         if (diff > duration) {
@@ -374,13 +374,13 @@ export const ksThrottle = <T>(duration: number): TransformFn<T, T> => {
 export const ksPairwise = <T>(): TransformFn<T, [T, T]> => {
   return (o: Stream<T>): Stream<[T, T]> => {
     return ksCreateStream(o.behaviour, ({ next, complete }) => {
-      let prevValue = None<T>();
+      let prevValue = none<T>();
       return o.subscribe({
         next: value => {
-          if (prevValue._tag === 'Some') {
-            next([prevValue.some, value]);
+          if (isSome(prevValue)) {
+            next([prevValue.value, value]);
           }
-          prevValue = Some(value);
+          prevValue = some(value);
         },
         complete,
       });

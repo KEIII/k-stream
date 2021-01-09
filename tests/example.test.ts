@@ -1,11 +1,4 @@
-import {
-  None,
-  Some,
-  ksFilter as filter,
-  ksPeriodic as periodic,
-  ksTake as take,
-  ksShare,
-} from '../src';
+import { none, some, ksFilterMap, ksPeriodic, ksTake, ksShare } from '../src';
 
 const getLogOut = (fn: () => void) => {
   return new Promise(resolve => {
@@ -26,9 +19,9 @@ const getLogOut = (fn: () => void) => {
 
 it('should test example', async () => {
   const p = getLogOut(() => {
-    const stream = periodic(100, ksShare)
-      .pipe(filter(n => (n % 2 === 0 ? Some(n) : None(n))))
-      .pipe(take(10));
+    const stream = ksPeriodic(100, ksShare)
+      .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none(n))))
+      .pipe(ksTake(10));
 
     stream.subscribe({
       next: console.log,

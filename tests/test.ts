@@ -9,7 +9,6 @@ import {
   tap,
 } from 'rxjs/operators';
 import {
-  Err,
   ksChangeBehaviour,
   ksCold,
   ksCombineLatest,
@@ -18,7 +17,7 @@ import {
   ksDebounce,
   ksDelay,
   ksEmpty,
-  ksFilter,
+  ksFilterMap,
   ksForkJoin,
   ksFromPromise,
   ksInterval,
@@ -42,13 +41,13 @@ import {
   ksTimeout,
   ksToPromise,
   ksZip,
-  None,
+  none,
   noop,
-  Ok,
-  Some,
+  some,
   SubscriberFn,
   ksSubject,
 } from '../src';
+import { left, right } from '../src/either';
 
 const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
@@ -66,7 +65,7 @@ describe('ksFromPromise', () => {
     const out = await stackOut(
       ksFromPromise<number, unknown>(Promise.resolve(random)),
     );
-    expect(out).toEqual([Ok(random)]);
+    expect(out).toEqual([right(random)]);
   });
 
   it('should create stream from promise and reject', async () => {
@@ -74,7 +73,7 @@ describe('ksFromPromise', () => {
     const out = await stackOut(
       ksFromPromise<number, unknown>(Promise.reject(random)),
     );
-    expect(out).toEqual([Err(random)]);
+    expect(out).toEqual([left(random)]);
   });
 
   it('should ignore resolved result after unsubscribe', async () => {
@@ -100,7 +99,7 @@ describe('ksToPromise', () => {
   it('should create promise from stream', async () => {
     const random = Math.random();
     const promise = ksToPromise(ksOf(random));
-    expect(await promise).toEqual(Some(random));
+    expect(await promise).toEqual(some(random));
   });
 });
 
@@ -306,8 +305,8 @@ it('should filter skip odd (i.e emit only even)', async () => {
   const out = await stackOut(
     ksPeriodic(0)
       .pipe(
-        ksFilter(n => {
-          return !(n & 1) ? Some(n) : None(n);
+        ksFilterMap(n => {
+          return !(n & 1) ? some(n) : none(n);
         }),
       )
       .pipe(ksTake(10)),

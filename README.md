@@ -10,15 +10,15 @@ npm i @keiii/k-stream
 
 ## Usage
 ```typescript
-import { ksPeriodic as periodic, ksShare as share, ksFilter as filter, ksTake as take, Some, None } from "@keiii/k-stream";
+import { ksPeriodic, ksShare, ksFilterMap, ksTake, some, none } from "@keiii/k-stream";
 
-const stream = periodic(100, share)
-  .pipe(filter(n => n % 2 === 0 ? Some(n) : None(n)))
-  .pipe(take(10));
+const stream = ksPeriodic(100, ksShare)
+  .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none(n))))
+  .pipe(ksTake(10));
 
 stream.subscribe({
   next: console.log,
-  complete: () => console.log("complete!"),
+  complete: () => console.log('complete!'),
 });
 ```
 K-Steam provides helper function to create steam from your data source:
@@ -32,8 +32,8 @@ const stream = ksCreateStream<MouseEvent>(ksShare, ({ next, complete }) => {
 
 ## Goals
 - “Hot” streams stay “hot” after pipe usage (https://github.com/ReactiveX/rxjs/issues/1148)
-- Do not lose type information
-- RxJS similar
+- Type safe, no “any”
+- Looks like RxJS syntax
 
 ## ToDo
 - withLatestFrom

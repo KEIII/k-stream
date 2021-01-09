@@ -8,8 +8,8 @@ import {
   Unsubscribable,
 } from './core';
 import { ksMap } from './transformers';
-import { None, Option, Some } from './ts-option';
-import { Err, Ok, Result } from './ts-result';
+import { isSome, none, Option, some } from './option';
+import { Either, left, right } from './either';
 
 /**
  * Observable that immediately completes.
@@ -205,12 +205,12 @@ export const ksCombineLatest = <T1, T2>(
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
     let completed2 = false;
-    let value1 = None<T1>();
-    let value2 = None<T2>();
+    let value1 = none<T1>();
+    let value2 = none<T2>();
 
     const tryNext = () => {
-      if (value1._tag === 'Some' && value2._tag === 'Some') {
-        return next([value1.some, value2.some]);
+      if (isSome(value1) && isSome(value2)) {
+        return next([value1.value, value2.value]);
       }
     };
 
@@ -222,7 +222,7 @@ export const ksCombineLatest = <T1, T2>(
 
     const subscription1 = stream1.subscribe({
       next: value => {
-        value1 = Some(value);
+        value1 = some(value);
         tryNext();
       },
       complete: () => {
@@ -233,7 +233,7 @@ export const ksCombineLatest = <T1, T2>(
 
     const subscription2 = stream2.subscribe({
       next: value => {
-        value2 = Some(value);
+        value2 = some(value);
         tryNext();
       },
       complete: () => {
@@ -261,23 +261,18 @@ export const ksForkJoin = <T1, T2>(
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
     let completed1 = false;
     let completed2 = false;
-    let value1 = None<T1>();
-    let value2 = None<T2>();
+    let value1 = none<T1>();
+    let value2 = none<T2>();
 
     const tryComplete = () => {
-      if (
-        completed1 &&
-        completed2 &&
-        value1._tag === 'Some' &&
-        value2._tag === 'Some'
-      ) {
-        next([value1.some, value2.some]);
+      if (completed1 && completed2 && isSome(value1) && isSome(value2)) {
+        next([value1.value, value2.value]);
         complete();
       }
     };
 
     const subscription1 = stream1.subscribe({
-      next: value => (value1 = Some(value)),
+      next: value => (value1 = some(value)),
       complete: () => {
         completed1 = true;
         tryComplete();
@@ -285,7 +280,7 @@ export const ksForkJoin = <T1, T2>(
     });
 
     const subscription2 = stream2.subscribe({
-      next: value => (value2 = Some(value)),
+      next: value => (value2 = some(value)),
       complete: () => {
         completed2 = true;
         tryComplete();
@@ -304,19 +299,19 @@ export const ksForkJoin = <T1, T2>(
 export const ksFromPromise = <T, E>(
   promise: Promise<T>,
   behaviour = ksCold,
-): Stream<Result<T, E>> => {
+): Stream<Either<E, T>> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     let on = true;
     promise
       .then(value => {
         if (on) {
-          next(Ok(value));
+          next(right(value));
           complete();
         }
       })
       .catch((err: E) => {
         if (on) {
-          next(Err(err));
+          next(left(err));
           complete();
         }
       });
@@ -326,9 +321,9 @@ export const ksFromPromise = <T, E>(
 
 export const ksToPromise = <T>(o: Observable<T>): Promise<Option<T>> => {
   return new Promise<Option<T>>(resolve => {
-    let result = None<T>();
+    let result = none<T>();
     o.subscribe({
-      next: value => (result = Some(value)),
+      next: value => (result = some(value)),
       complete: () => resolve(result),
     });
   });
