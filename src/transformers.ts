@@ -211,20 +211,16 @@ export const ksTakeUntil = <T>(
 export const ksTake = <T>(count: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      let isCompleted = false;
       let counter = 0;
 
       const subscription = lazySubscription();
 
       const onComplete = () => {
-        if (isCompleted) return;
-        isCompleted = true;
         complete();
         subscription.unsubscribe();
       };
 
       const onNext: NextFn<T> = value => {
-        if (isCompleted) return;
         next(value);
         if (++counter >= count) {
           onComplete();
@@ -249,18 +245,14 @@ export const ksTakeWhile = <T>(
 ): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      let isCompleted = false;
-      const s = lazySubscription();
+      const subscription = lazySubscription();
 
       const onComplete = () => {
-        if (isCompleted) return;
-        isCompleted = true;
         complete();
-        s.unsubscribe();
+        subscription.unsubscribe();
       };
 
       const onNext: NextFn<T> = value => {
-        if (isCompleted) return;
         if (predicate(value)) {
           next(value);
         } else {
@@ -268,7 +260,7 @@ export const ksTakeWhile = <T>(
         }
       };
 
-      return s.resolve(
+      return subscription.resolve(
         stream.subscribe({
           next: onNext,
           complete: onComplete,

@@ -31,7 +31,7 @@ export type Stream<T> = Observable<T> & {
 
 export type KsBehaviour = <T>(subscribeFn: SubscriberFn<T>) => Stream<T>;
 
-export const noop = () => void 0;
+export const noop: () => void = () => void 0;
 
 export type Scheduler = {
   schedule: (handler: () => void, ms: number) => Unsubscribable;

@@ -66,7 +66,6 @@ export const ksMerge = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<T1 | T2> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     const subscription1 = lazySubscription();
@@ -78,9 +77,7 @@ export const ksMerge = <T1, T2>(
     };
 
     const tryComplete = () => {
-      if (isCompleted) return;
       if (completed1 && completed2) {
-        isCompleted = true;
         complete();
         unsubscribe();
       }
@@ -118,7 +115,6 @@ export const ksZip = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     const queue1: T1[] = [];
@@ -132,19 +128,16 @@ export const ksZip = <T1, T2>(
     };
 
     const tryNext = () => {
-      if (isCompleted) return;
       if (queue1.length > 0 && queue2.length > 0) {
         next([queue1.shift() as T1, queue2.shift() as T2]);
       }
     };
 
     const tryComplete = () => {
-      if (isCompleted) return;
       if (
         (completed1 && queue1.length === 0) ||
         (completed2 && queue2.length === 0)
       ) {
-        isCompleted = true;
         complete();
         unsubscribe();
       }
@@ -201,7 +194,7 @@ export const ksInterval = (
 ): Stream<number> => {
   return ksCreateStream(behaviour, ({ next }) => {
     let count = 0;
-    let unsubscribe: (() => void) | null = null;
+    let unsubscribe = noop;
     const tick = () => {
       unsubscribe = scheduler.schedule(handler, ms).unsubscribe;
     };
@@ -210,7 +203,7 @@ export const ksInterval = (
       tick();
     };
     tick();
-    return { unsubscribe: () => unsubscribe?.() };
+    return { unsubscribe: () => unsubscribe() };
   });
 };
 
@@ -229,7 +222,6 @@ export const ksCombineLatest = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     let value1 = none<T1>();
@@ -243,16 +235,13 @@ export const ksCombineLatest = <T1, T2>(
     };
 
     const tryNext = () => {
-      if (isCompleted) return;
       if (isSome(value1) && isSome(value2)) {
         return next([value1.value, value2.value]);
       }
     };
 
     const tryComplete = () => {
-      if (isCompleted) return;
       if (completed1 && completed2) {
-        isCompleted = true;
         complete();
         unsubscribe();
       }
@@ -296,7 +285,6 @@ export const ksForkJoin = <T1, T2>(
   stream2: Stream<T2>,
 ): Stream<[T1, T2]> => {
   return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let isCompleted = false;
     let completed1 = false;
     let completed2 = false;
     let value1 = none<T1>();
@@ -310,7 +298,6 @@ export const ksForkJoin = <T1, T2>(
     };
 
     const tryComplete = () => {
-      if (isCompleted) return;
       if (completed1 && completed2 && isSome(value1) && isSome(value2)) {
         next([value1.value, value2.value]);
         complete();
