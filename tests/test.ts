@@ -48,6 +48,8 @@ import {
   ksSubject,
   right,
   left,
+  isRight,
+  isLeft,
 } from '../src';
 
 const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
@@ -67,6 +69,8 @@ describe('ksFromPromise', () => {
       ksFromPromise<number, unknown>(Promise.resolve(random)),
     );
     expect(out).toEqual([right(random)]);
+    expect(isRight(out[0])).toBeTruthy();
+    expect(isLeft(out[0])).toBeFalsy();
   });
 
   it('should create stream from promise and reject', async () => {
