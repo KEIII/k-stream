@@ -50,15 +50,22 @@ import {
   left,
   isRight,
   isLeft,
+  lazySubscription,
 } from '../src';
 
 const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
     const output: T[] = [];
-    o.subscribe({
-      next: v => output.push(v),
-      complete: () => resolve(output),
-    });
+    const s = lazySubscription();
+    s.resolve(
+      o.subscribe({
+        next: v => output.push(v),
+        complete: () => {
+          resolve(output);
+          s.unsubscribe(); // not necessary but increase test coverage ;)
+        },
+      }),
+    );
   });
 };
 
