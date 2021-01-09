@@ -248,15 +248,13 @@ export const ksTakeWhile = <T>(
 /**
  * Delay emitted values by given time.
  */
-export const ksDelay = <T>(delay: number): TransformFn<T, T> => {
+export const ksDelay = <T>(ms: number): TransformFn<T, T> => {
   return (stream: Stream<T>): Stream<T> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      const timers = new Map<TimeoutId, void>();
+      const timers = new Set<TimeoutId>();
 
       const clearTimers = () => {
-        for (const t of timers.keys()) {
-          clearTimeout(t);
-        }
+        timers.forEach(t => clearTimeout(t));
         timers.clear();
       };
 
@@ -265,15 +263,15 @@ export const ksDelay = <T>(delay: number): TransformFn<T, T> => {
           const t = setTimeout(() => {
             next(value);
             timers.delete(t);
-          }, delay);
-          timers.set(t);
+          }, ms);
+          timers.add(t);
         },
         complete: () => {
           const t = setTimeout(() => {
             complete();
             timers.delete(t);
-          }, delay);
-          timers.set(t);
+          }, ms);
+          timers.add(t);
         },
       });
 

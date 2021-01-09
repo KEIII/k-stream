@@ -6,7 +6,7 @@ module.exports = {
       diagnostics: {
         ignoreCodes: [151001],
       },
-      tsConfig: "tsconfig.json",
+      tsconfig: "tsconfig.json",
     },
   },
 };

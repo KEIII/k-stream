@@ -1,4 +1,5 @@
 import {
+  asyncScheduler,
   ksCold,
   ksCreateStream,
   noop,
@@ -164,14 +165,17 @@ export const ksZip = <T1, T2>(
   });
 };
 
-export const ksTimeout = (ms: number, behaviour = ksCold): Stream<number> => {
+export const ksTimeout = (
+  ms: number,
+  behaviour = ksCold,
+  scheduler = asyncScheduler,
+): Stream<number> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     const handler = () => {
       next(0);
       complete();
     };
-    const timeoutId = setTimeout(handler, ms);
-    return { unsubscribe: () => clearTimeout(timeoutId) };
+    return scheduler.schedule(handler, ms);
   });
 };
 
@@ -323,12 +327,9 @@ export const ksFromPromise = <T, E>(
 export const ksToPromise = <T>(o: Observable<T>): Promise<Option<T>> => {
   return new Promise<Option<T>>(resolve => {
     let result = None<T>();
-    const s = o.subscribe({
+    o.subscribe({
       next: value => (result = Some(value)),
-      complete: () => {
-        resolve(result);
-        setTimeout(() => s.unsubscribe());
-      },
+      complete: () => resolve(result),
     });
   });
 };

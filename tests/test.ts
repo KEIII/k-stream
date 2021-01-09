@@ -46,19 +46,16 @@ import {
   noop,
   Ok,
   Some,
-  SubscribeFn,
+  SubscriberFn,
   ksSubject,
 } from '../src';
 
-const stackOut = <T>(o: { subscribe: SubscribeFn<T> }): Promise<T[]> => {
+const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
   return new Promise<T[]>(resolve => {
     const output: T[] = [];
-    const subscription = o.subscribe({
+    o.subscribe({
       next: v => output.push(v),
-      complete: () => {
-        resolve(output);
-        setTimeout(() => subscription.unsubscribe());
-      },
+      complete: () => resolve(output),
     });
   });
 };
