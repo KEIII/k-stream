@@ -168,31 +168,31 @@ export const ksTakeUntil = <A>(
 
         if (isCompleted) {
           return mainSubscription;
-        } else {
-          let isTerminated = false;
-          const notifierSubscription = lazySubscription();
-
-          const unsubscribe = () => {
-            notifierSubscription.unsubscribe();
-            mainSubscription.unsubscribe();
-          };
-
-          const terminate = () => {
-            if (isTerminated) return;
-            isTerminated = true;
-            complete();
-            unsubscribe();
-          };
-
-          notifierSubscription.resolve(
-            notifier.subscribe({
-              next: terminate,
-              complete: terminate,
-            }),
-          );
-
-          return { unsubscribe };
         }
+
+        let isTerminated = false;
+        const notifierSubscription = lazySubscription();
+
+        const unsubscribe = () => {
+          notifierSubscription.unsubscribe();
+          mainSubscription.unsubscribe();
+        };
+
+        const terminate = () => {
+          if (isTerminated) return;
+          isTerminated = true;
+          complete();
+          unsubscribe();
+        };
+
+        notifierSubscription.resolve(
+          notifier.subscribe({
+            next: terminate,
+            complete: terminate,
+          }),
+        );
+
+        return { unsubscribe };
       },
     );
 
@@ -247,7 +247,7 @@ export const ksTakeWhile = <A>(
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       const subscription = lazySubscription();
 
-      const onComplete = () => {
+      const onComplete: Complete = () => {
         complete();
         subscription.unsubscribe();
       };

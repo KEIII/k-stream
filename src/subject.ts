@@ -15,21 +15,20 @@ export type Subject<A> = Stream<A> & {
 
 export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
   let isCompleted = false;
-  let subjectObserver: Observer<A> | null = null;
+  let subjectObserver: Required<Observer<A>> | null = null;
 
-  const next: Next<A> = (value: A) => {
-    if (!isCompleted) {
-      subjectObserver?.next?.(value);
-    }
+  const next: Next<A> = value => {
+    if (isCompleted) return;
+    subjectObserver?.next(value);
   };
 
   const complete: Complete = () => {
     isCompleted = true;
-    subjectObserver?.complete?.();
+    subjectObserver?.complete();
   };
 
-  const stream = ksCreateStream<A>(behaviour, o => {
-    subjectObserver = o;
+  const stream = ksCreateStream<A>(behaviour, observer => {
+    subjectObserver = observer;
     return { unsubscribe: noop };
   });
 
@@ -38,9 +37,8 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
       if (isCompleted) {
         observer.complete?.();
         return { unsubscribe: noop };
-      } else {
-        return stream.subscribe(observer);
       }
+      return stream.subscribe(observer);
     },
     pipe: stream.pipe,
     behaviour: stream.behaviour,

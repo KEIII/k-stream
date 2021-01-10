@@ -19,22 +19,21 @@ export const ksBehaviourSubject = <A>(
   behaviour = ksShareReplay,
 ): BehaviourSubject<A> => {
   const state = { isCompleted: false, current: initValue };
-  let subjectObserver: Observer<A> | null = null;
+  let subjectObserver: Required<Observer<A>> | null = null;
 
   const stream = ksCreateStream<A>(behaviour, observer => {
     subjectObserver = observer;
-    subjectObserver.next?.(state.current);
+    subjectObserver.next(state.current);
     return { unsubscribe: () => (subjectObserver = null) };
   });
 
-  const next = (value: A) => {
+  const next: Next<A> = value => {
     if (state.isCompleted) {
-      console.warn('Logic error: Ignore call next on completed stream.');
-    } else {
-      state.current = value;
-      if (subjectObserver !== null) {
-        subjectObserver.next?.(value);
-      }
+      return console.warn('Logic error: Ignore call next on completed stream.');
+    }
+    state.current = value;
+    if (subjectObserver !== null) {
+      subjectObserver.next(value);
     }
   };
 
@@ -44,16 +43,15 @@ export const ksBehaviourSubject = <A>(
         observer.next?.(state.current);
         observer.complete?.();
         return { unsubscribe: noop };
-      } else {
-        return stream.subscribe(observer);
       }
+      return stream.subscribe(observer);
     },
     pipe: stream.pipe,
     behaviour: stream.behaviour,
     complete: () => {
       state.isCompleted = true;
       if (subjectObserver !== null) {
-        subjectObserver.complete?.();
+        subjectObserver.complete();
       }
     },
     next,

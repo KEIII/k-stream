@@ -1,6 +1,6 @@
 import { none, some, ksFilterMap, ksPeriodic, ksTake, ksShare } from '../src';
 
-const getLogOut = (fn: () => void) => {
+const getLogOut = (f: () => void) => {
   return new Promise(resolve => {
     const org = console.log;
     const logs: unknown[] = [];
@@ -13,7 +13,7 @@ const getLogOut = (fn: () => void) => {
       }
     };
     console.log = jest.fn(logger);
-    fn();
+    f();
   });
 };
 
