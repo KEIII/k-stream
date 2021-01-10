@@ -420,10 +420,10 @@ export const ksScan = <A, B>(
   accumulator: (acc: B, curr: A) => B,
   seed: B,
 ): Transformer<A, B> => {
-  return (o: Stream<A>): Stream<B> => {
-    return ksCreateStream(o.behaviour, ({ next, complete }) => {
+  return stream => {
+    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       let acc = seed;
-      return o.subscribe({
+      return stream.subscribe({
         next: value => {
           acc = accumulator(acc, value);
           next(acc);
