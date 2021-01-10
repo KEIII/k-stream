@@ -20,7 +20,7 @@ const getLogOut = (fn: () => void) => {
 it('should test example', async () => {
   const p = getLogOut(() => {
     const stream = ksPeriodic(100, ksShare)
-      .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none(n))))
+      .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none)))
       .pipe(ksTake(10));
 
     stream.subscribe({

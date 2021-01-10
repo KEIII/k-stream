@@ -44,25 +44,27 @@ import {
   none,
   noop,
   some,
-  SubscriberFn,
   ksSubject,
   right,
   left,
   isRight,
   isLeft,
   lazySubscription,
+  SubscriberRequired,
 } from '../src';
 
-const stackOut = <T>(o: { subscribe: SubscriberFn<T> }): Promise<T[]> => {
-  return new Promise<T[]>(resolve => {
-    const output: T[] = [];
-    const s = lazySubscription();
-    s.resolve(
-      o.subscribe({
+const stackOut = <A>(observable: {
+  subscribe: SubscriberRequired<A>;
+}): Promise<A[]> => {
+  return new Promise<A[]>(resolve => {
+    const output: A[] = [];
+    const subscription = lazySubscription();
+    subscription.resolve(
+      observable.subscribe({
         next: v => output.push(v),
         complete: () => {
           resolve(output);
-          s.unsubscribe(); // not necessary but increase test coverage ;)
+          subscription.unsubscribe(); // not necessary but increase test coverage ;)
         },
       }),
     );
@@ -316,11 +318,7 @@ it('should change behaviour', async () => {
 it('should filter skip odd (i.e emit only even)', async () => {
   const out = await stackOut(
     ksPeriodic(0)
-      .pipe(
-        ksFilterMap(n => {
-          return !(n & 1) ? some(n) : none(n);
-        }),
-      )
+      .pipe(ksFilterMap(n => (!(n & 1) ? some(n) : none)))
       .pipe(ksTake(10)),
   );
   expect(out).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18]);

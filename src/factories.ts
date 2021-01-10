@@ -14,7 +14,7 @@ import { Either, left, right } from './either';
 /**
  * Observable that immediately completes.
  */
-export const ksEmpty = <T>(): Stream<T> => {
+export const ksEmpty = <A>(): Stream<A> => {
   return ksCreateStream(ksCold, ({ complete }) => {
     complete();
     return { unsubscribe: noop };
@@ -24,8 +24,8 @@ export const ksEmpty = <T>(): Stream<T> => {
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = <T>(value: T, behaviour = ksCold): Stream<T> => {
-  return ksCreateStream<T>(behaviour, ({ next, complete }) => {
+export const ksOf = <A>(value: A, behaviour = ksCold): Stream<A> => {
+  return ksCreateStream<A>(behaviour, ({ next, complete }) => {
     next(value);
     complete();
     return { unsubscribe: noop };
@@ -35,24 +35,24 @@ export const ksOf = <T>(value: T, behaviour = ksCold): Stream<T> => {
 /**
  * Subscribe to observables in order as previous completes.
  */
-export const ksConcat = <T1, T2>(
-  stream1: Stream<T1>,
-  stream2: Stream<T2>,
-): Stream<T1 | T2> => {
-  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    const subscription2 = lazySubscription();
+export const ksConcat = <A, B>(
+  stream_a: Stream<A>,
+  stream_b: Stream<B>,
+): Stream<A | B> => {
+  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+    const subscription_b = lazySubscription();
 
-    const subscription1 = stream1.subscribe({
+    const subscription_a = stream_a.subscribe({
       next,
       complete: () => {
-        subscription2.resolve(stream2.subscribe({ next, complete }));
+        subscription_b.resolve(stream_b.subscribe({ next, complete }));
       },
     });
 
     return {
       unsubscribe: () => {
-        subscription2.unsubscribe();
-        subscription1.unsubscribe();
+        subscription_b.unsubscribe();
+        subscription_a.unsubscribe();
       },
     };
   });
@@ -61,43 +61,43 @@ export const ksConcat = <T1, T2>(
 /**
  * Turn multiple observables into a single observable.
  */
-export const ksMerge = <T1, T2>(
-  stream1: Stream<T1>,
-  stream2: Stream<T2>,
-): Stream<T1 | T2> => {
-  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let completed1 = false;
-    let completed2 = false;
-    const subscription1 = lazySubscription();
-    const subscription2 = lazySubscription();
+export const ksMerge = <A, B>(
+  stream_a: Stream<A>,
+  stream_b: Stream<B>,
+): Stream<A | B> => {
+  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+    let completed_a = false;
+    let completed_b = false;
+    const subscription_a = lazySubscription();
+    const subscription_b = lazySubscription();
 
     const unsubscribe = () => {
-      subscription2.unsubscribe();
-      subscription1.unsubscribe();
+      subscription_b.unsubscribe();
+      subscription_a.unsubscribe();
     };
 
     const tryComplete = () => {
-      if (completed1 && completed2) {
+      if (completed_a && completed_b) {
         complete();
         unsubscribe();
       }
     };
 
-    subscription1.resolve(
-      stream1.subscribe({
+    subscription_a.resolve(
+      stream_a.subscribe({
         next,
         complete: () => {
-          completed1 = true;
+          completed_a = true;
           tryComplete();
         },
       }),
     );
 
-    subscription2.resolve(
-      stream2.subscribe({
+    subscription_b.resolve(
+      stream_b.subscribe({
         next,
         complete: () => {
-          completed2 = true;
+          completed_b = true;
           tryComplete();
         },
       }),
@@ -110,60 +110,60 @@ export const ksMerge = <T1, T2>(
 /**
  * After all observables emit, emit values as an array.
  */
-export const ksZip = <T1, T2>(
-  stream1: Stream<T1>,
-  stream2: Stream<T2>,
-): Stream<[T1, T2]> => {
-  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let completed1 = false;
-    let completed2 = false;
-    const queue1: T1[] = [];
-    const queue2: T2[] = [];
-    const subscription1 = lazySubscription();
-    const subscription2 = lazySubscription();
+export const ksZip = <A, B>(
+  stream_a: Stream<A>,
+  stream_b: Stream<B>,
+): Stream<[A, B]> => {
+  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+    let completed_a = false;
+    let completed_b = false;
+    const queue_a: A[] = [];
+    const queue_b: B[] = [];
+    const subscription_a = lazySubscription();
+    const subscription_b = lazySubscription();
 
     const unsubscribe = () => {
-      subscription2.unsubscribe();
-      subscription1.unsubscribe();
+      subscription_b.unsubscribe();
+      subscription_a.unsubscribe();
     };
 
     const tryNext = () => {
-      if (queue1.length > 0 && queue2.length > 0) {
-        next([queue1.shift() as T1, queue2.shift() as T2]);
+      if (queue_a.length > 0 && queue_b.length > 0) {
+        next([queue_a.shift() as A, queue_b.shift() as B]);
       }
     };
 
     const tryComplete = () => {
       if (
-        (completed1 && queue1.length === 0) ||
-        (completed2 && queue2.length === 0)
+        (completed_a && queue_a.length === 0) ||
+        (completed_b && queue_b.length === 0)
       ) {
         complete();
         unsubscribe();
       }
     };
 
-    subscription1.resolve(
-      stream1.subscribe({
+    subscription_a.resolve(
+      stream_a.subscribe({
         next: value => {
-          queue1.push(value);
+          queue_a.push(value);
           tryNext();
         },
         complete: () => {
-          completed1 = true;
+          completed_a = true;
           tryComplete();
         },
       }),
     );
 
-    subscription2.resolve(
-      stream2.subscribe({
+    subscription_b.resolve(
+      stream_b.subscribe({
         next: value => {
-          queue2.push(value);
+          queue_b.push(value);
           tryNext();
         },
         complete: () => {
-          completed2 = true;
+          completed_b = true;
           tryComplete();
         },
       }),
@@ -217,57 +217,57 @@ export const ksPeriodic = (ms: number, behaviour = ksCold): Stream<number> => {
 /**
  * When any observable emits a value, emit the last emitted value from each.
  */
-export const ksCombineLatest = <T1, T2>(
-  stream1: Stream<T1>,
-  stream2: Stream<T2>,
-): Stream<[T1, T2]> => {
-  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let completed1 = false;
-    let completed2 = false;
-    let value1 = none<T1>();
-    let value2 = none<T2>();
-    const subscription1 = lazySubscription();
-    const subscription2 = lazySubscription();
+export const ksCombineLatest = <A, B>(
+  stream_a: Stream<A>,
+  stream_b: Stream<B>,
+): Stream<[A, B]> => {
+  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+    let completed_a = false;
+    let completed_b = false;
+    let value_a: Option<A> = none;
+    let value_b: Option<B> = none;
+    const subscription_a = lazySubscription();
+    const subscription_b = lazySubscription();
 
     const unsubscribe = () => {
-      subscription2.unsubscribe();
-      subscription1.unsubscribe();
+      subscription_b.unsubscribe();
+      subscription_a.unsubscribe();
     };
 
     const tryNext = () => {
-      if (isSome(value1) && isSome(value2)) {
-        return next([value1.value, value2.value]);
+      if (isSome(value_a) && isSome(value_b)) {
+        return next([value_a.value, value_b.value]);
       }
     };
 
     const tryComplete = () => {
-      if (completed1 && completed2) {
+      if (completed_a && completed_b) {
         complete();
         unsubscribe();
       }
     };
 
-    subscription1.resolve(
-      stream1.subscribe({
+    subscription_a.resolve(
+      stream_a.subscribe({
         next: value => {
-          value1 = some(value);
+          value_a = some(value);
           tryNext();
         },
         complete: () => {
-          completed1 = true;
+          completed_a = true;
           tryComplete();
         },
       }),
     );
 
-    subscription2.resolve(
-      stream2.subscribe({
+    subscription_b.resolve(
+      stream_b.subscribe({
         next: value => {
-          value2 = some(value);
+          value_b = some(value);
           tryNext();
         },
         complete: () => {
-          completed2 = true;
+          completed_b = true;
           tryComplete();
         },
       }),
@@ -280,46 +280,46 @@ export const ksCombineLatest = <T1, T2>(
 /**
  * When all observables complete, emit the last emitted value from each.
  */
-export const ksForkJoin = <T1, T2>(
-  stream1: Stream<T1>,
-  stream2: Stream<T2>,
-): Stream<[T1, T2]> => {
-  return ksCreateStream(stream1.behaviour, ({ next, complete }) => {
-    let completed1 = false;
-    let completed2 = false;
-    let value1 = none<T1>();
-    let value2 = none<T2>();
-    const subscription1 = lazySubscription();
-    const subscription2 = lazySubscription();
+export const ksForkJoin = <A, B>(
+  stream_a: Stream<A>,
+  stream_b: Stream<B>,
+): Stream<[A, B]> => {
+  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+    let completed_a = false;
+    let completed_b = false;
+    let value_a: Option<A> = none;
+    let value_b: Option<B> = none;
+    const subscription_a = lazySubscription();
+    const subscription_b = lazySubscription();
 
     const unsubscribe = () => {
-      subscription2.unsubscribe();
-      subscription1.unsubscribe();
+      subscription_b.unsubscribe();
+      subscription_a.unsubscribe();
     };
 
     const tryComplete = () => {
-      if (completed1 && completed2 && isSome(value1) && isSome(value2)) {
-        next([value1.value, value2.value]);
+      if (completed_a && completed_b && isSome(value_a) && isSome(value_b)) {
+        next([value_a.value, value_b.value]);
         complete();
         unsubscribe();
       }
     };
 
-    subscription1.resolve(
-      stream1.subscribe({
-        next: value => (value1 = some(value)),
+    subscription_a.resolve(
+      stream_a.subscribe({
+        next: value => (value_a = some(value)),
         complete: () => {
-          completed1 = true;
+          completed_a = true;
           tryComplete();
         },
       }),
     );
 
-    subscription2.resolve(
-      stream2.subscribe({
-        next: value => (value2 = some(value)),
+    subscription_b.resolve(
+      stream_b.subscribe({
+        next: value => (value_b = some(value)),
         complete: () => {
-          completed2 = true;
+          completed_b = true;
           tryComplete();
         },
       }),
@@ -329,10 +329,10 @@ export const ksForkJoin = <T1, T2>(
   });
 };
 
-export const ksFromPromise = <T, E>(
-  promise: Promise<T>,
+export const ksFromPromise = <A, E>(
+  promise: Promise<A>,
   behaviour = ksCold,
-): Stream<Either<E, T>> => {
+): Stream<Either<E, A>> => {
   return ksCreateStream(behaviour, ({ next, complete }) => {
     let on = true;
     promise
@@ -352,10 +352,12 @@ export const ksFromPromise = <T, E>(
   });
 };
 
-export const ksToPromise = <T>(o: Observable<T>): Promise<Option<T>> => {
-  return new Promise<Option<T>>(resolve => {
-    let result = none<T>();
-    o.subscribe({
+export const ksToPromise = <A>(
+  observable: Observable<A>,
+): Promise<Option<A>> => {
+  return new Promise<Option<A>>(resolve => {
+    let result: Option<A> = none;
+    observable.subscribe({
       next: value => (result = some(value)),
       complete: () => resolve(result),
     });

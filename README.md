@@ -13,7 +13,7 @@ npm i @keiii/k-stream
 import { ksPeriodic, ksShare, ksFilterMap, ksTake, some, none } from "@keiii/k-stream";
 
 const stream = ksPeriodic(100, ksShare)
-  .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none(n))))
+  .pipe(ksFilterMap(n => (n % 2 === 0 ? some(n) : none)))
   .pipe(ksTake(10));
 
 stream.subscribe({

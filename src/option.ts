@@ -15,4 +15,4 @@ export const isNone = <A>(fa: Option<A>): fa is None => fa._tag === 'None';
 
 export const some = <A>(a: A): Option<A> => ({ _tag: 'Some', value: a });
 
-export const none = <A>(_?: A): Option<A> => ({ _tag: 'None' });
+export const none: Option<never> = { _tag: 'None' };

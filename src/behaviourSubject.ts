@@ -1,39 +1,39 @@
 import {
-  CompleteFn,
+  Complete,
   ksCreateStream,
   ksShareReplay,
-  NextFn,
+  Next,
   noop,
   Observer,
   Stream,
 } from './core';
 
-export type BehaviourSubject<T> = Stream<T> & {
-  value: T;
-  readonly next: NextFn<T>;
-  readonly complete: CompleteFn;
+export type BehaviourSubject<A> = Stream<A> & {
+  value: A;
+  readonly next: Next<A>;
+  readonly complete: Complete;
 };
 
-export const ksBehaviourSubject = <T>(
-  initValue: T,
+export const ksBehaviourSubject = <A>(
+  initValue: A,
   behaviour = ksShareReplay,
-): BehaviourSubject<T> => {
+): BehaviourSubject<A> => {
   const state = { isCompleted: false, current: initValue };
-  let subjectObserver: Observer<T> | null = null;
+  let subjectObserver: Observer<A> | null = null;
 
-  const stream = ksCreateStream<T>(behaviour, observer => {
+  const stream = ksCreateStream<A>(behaviour, observer => {
     subjectObserver = observer;
-    subjectObserver.next(state.current);
+    subjectObserver.next?.(state.current);
     return { unsubscribe: () => (subjectObserver = null) };
   });
 
-  const next = (value: T) => {
+  const next = (value: A) => {
     if (state.isCompleted) {
       console.warn('Logic error: Ignore call next on completed stream.');
     } else {
       state.current = value;
       if (subjectObserver !== null) {
-        subjectObserver.next(value);
+        subjectObserver.next?.(value);
       }
     }
   };
@@ -53,11 +53,11 @@ export const ksBehaviourSubject = <T>(
     complete: () => {
       state.isCompleted = true;
       if (subjectObserver !== null) {
-        subjectObserver.complete();
+        subjectObserver.complete?.();
       }
     },
     next,
-    set value(value: T) {
+    set value(value: A) {
       next(value);
     },
     get value() {

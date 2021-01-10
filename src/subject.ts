@@ -1,6 +1,6 @@
 import {
-  CompleteFn,
-  NextFn,
+  Complete,
+  Next,
   Observer,
   Stream,
   ksCreateStream,
@@ -8,27 +8,27 @@ import {
   ksShare,
 } from './core';
 
-export type Subject<T> = Stream<T> & {
-  readonly next: (value: T) => void;
-  readonly complete: CompleteFn;
+export type Subject<A> = Stream<A> & {
+  readonly next: (value: A) => void;
+  readonly complete: Complete;
 };
 
-export const ksSubject = <T>(behaviour = ksShare): Subject<T> => {
+export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
   let isCompleted = false;
-  let subjectObserver: Observer<T> | null = null;
+  let subjectObserver: Observer<A> | null = null;
 
-  const next: NextFn<T> = (value: T) => {
+  const next: Next<A> = (value: A) => {
     if (!isCompleted) {
-      subjectObserver?.next(value);
+      subjectObserver?.next?.(value);
     }
   };
 
-  const complete: CompleteFn = () => {
+  const complete: Complete = () => {
     isCompleted = true;
-    subjectObserver?.complete();
+    subjectObserver?.complete?.();
   };
 
-  const stream = ksCreateStream<T>(behaviour, o => {
+  const stream = ksCreateStream<A>(behaviour, o => {
     subjectObserver = o;
     return { unsubscribe: noop };
   });
