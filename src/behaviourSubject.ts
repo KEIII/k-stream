@@ -29,7 +29,9 @@ export const ksBehaviourSubject = <A>(
 
   const next: Next<A> = value => {
     if (state.isCompleted) {
-      return console.warn('Logic error: Ignore call next on completed stream.');
+      return console.warn(
+        'Logic error: Ignore call `next` on completed stream.',
+      );
     }
     state.current = value;
     if (subjectObserver !== null) {
