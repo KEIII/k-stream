@@ -49,7 +49,7 @@ import {
   left,
   isRight,
   isLeft,
-  lazySubscription,
+  _lazy,
   SubscriberRequired,
 } from '../src';
 
@@ -58,16 +58,14 @@ const stackOut = <A>(observable: {
 }): Promise<A[]> => {
   return new Promise<A[]>(resolve => {
     const output: A[] = [];
-    const subscription = lazySubscription();
-    subscription.resolve(
-      observable.subscribe({
-        next: v => output.push(v),
-        complete: () => {
-          resolve(output);
-          subscription.unsubscribe(); // not necessary but increase test coverage ;)
-        },
-      }),
-    );
+    const _observable = _lazy(observable);
+    _observable.subscribe({
+      next: v => output.push(v),
+      complete: () => {
+        resolve(output);
+        _observable.unsubscribe(); // not necessary but increase test coverage ;)
+      },
+    });
   });
 };
 

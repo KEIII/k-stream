@@ -2,7 +2,7 @@ import {
   asyncScheduler,
   ksCold,
   ksCreateStream,
-  lazySubscription,
+  _lazy,
   noop,
   Observable,
   Stream,
@@ -40,19 +40,19 @@ export const ksConcat = <A, B>(
   stream_b: Stream<B>,
 ): Stream<A | B> => {
   return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
-    const subscription_b = lazySubscription();
+    const b = _lazy(stream_b);
 
-    const subscription_a = stream_a.subscribe({
+    const a = stream_a.subscribe({
       next,
       complete: () => {
-        subscription_b.resolve(stream_b.subscribe({ next, complete }));
+        b.subscribe({ next, complete });
       },
     });
 
     return {
       unsubscribe: () => {
-        subscription_b.unsubscribe();
-        subscription_a.unsubscribe();
+        b.unsubscribe();
+        a.unsubscribe();
       },
     };
   });
@@ -68,12 +68,12 @@ export const ksMerge = <A, B>(
   return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
-    const subscription_a = lazySubscription();
-    const subscription_b = lazySubscription();
+    const a = _lazy(stream_a);
+    const b = _lazy(stream_b);
 
     const unsubscribe = () => {
-      subscription_b.unsubscribe();
-      subscription_a.unsubscribe();
+      b.unsubscribe();
+      a.unsubscribe();
     };
 
     const tryComplete = () => {
@@ -83,25 +83,21 @@ export const ksMerge = <A, B>(
       }
     };
 
-    subscription_a.resolve(
-      stream_a.subscribe({
-        next,
-        complete: () => {
-          completed_a = true;
-          tryComplete();
-        },
-      }),
-    );
+    a.subscribe({
+      next,
+      complete: () => {
+        completed_a = true;
+        tryComplete();
+      },
+    });
 
-    subscription_b.resolve(
-      stream_b.subscribe({
-        next,
-        complete: () => {
-          completed_b = true;
-          tryComplete();
-        },
-      }),
-    );
+    b.subscribe({
+      next,
+      complete: () => {
+        completed_b = true;
+        tryComplete();
+      },
+    });
 
     return { unsubscribe };
   });
@@ -119,12 +115,12 @@ export const ksZip = <A, B>(
     let completed_b = false;
     const queue_a: A[] = [];
     const queue_b: B[] = [];
-    const subscription_a = lazySubscription();
-    const subscription_b = lazySubscription();
+    const a = _lazy(stream_a);
+    const b = _lazy(stream_b);
 
     const unsubscribe = () => {
-      subscription_b.unsubscribe();
-      subscription_a.unsubscribe();
+      b.unsubscribe();
+      a.unsubscribe();
     };
 
     const tryNext = () => {
@@ -143,31 +139,27 @@ export const ksZip = <A, B>(
       }
     };
 
-    subscription_a.resolve(
-      stream_a.subscribe({
-        next: value => {
-          queue_a.push(value);
-          tryNext();
-        },
-        complete: () => {
-          completed_a = true;
-          tryComplete();
-        },
-      }),
-    );
+    a.subscribe({
+      next: value => {
+        queue_a.push(value);
+        tryNext();
+      },
+      complete: () => {
+        completed_a = true;
+        tryComplete();
+      },
+    });
 
-    subscription_b.resolve(
-      stream_b.subscribe({
-        next: value => {
-          queue_b.push(value);
-          tryNext();
-        },
-        complete: () => {
-          completed_b = true;
-          tryComplete();
-        },
-      }),
-    );
+    b.subscribe({
+      next: value => {
+        queue_b.push(value);
+        tryNext();
+      },
+      complete: () => {
+        completed_b = true;
+        tryComplete();
+      },
+    });
 
     return { unsubscribe };
   });
@@ -226,12 +218,12 @@ export const ksCombineLatest = <A, B>(
     let completed_b = false;
     let value_a: Option<A> = none;
     let value_b: Option<B> = none;
-    const subscription_a = lazySubscription();
-    const subscription_b = lazySubscription();
+    const a = _lazy(stream_a);
+    const b = _lazy(stream_b);
 
     const unsubscribe = () => {
-      subscription_b.unsubscribe();
-      subscription_a.unsubscribe();
+      b.unsubscribe();
+      a.unsubscribe();
     };
 
     const tryNext = () => {
@@ -247,31 +239,27 @@ export const ksCombineLatest = <A, B>(
       }
     };
 
-    subscription_a.resolve(
-      stream_a.subscribe({
-        next: value => {
-          value_a = some(value);
-          tryNext();
-        },
-        complete: () => {
-          completed_a = true;
-          tryComplete();
-        },
-      }),
-    );
+    a.subscribe({
+      next: value => {
+        value_a = some(value);
+        tryNext();
+      },
+      complete: () => {
+        completed_a = true;
+        tryComplete();
+      },
+    });
 
-    subscription_b.resolve(
-      stream_b.subscribe({
-        next: value => {
-          value_b = some(value);
-          tryNext();
-        },
-        complete: () => {
-          completed_b = true;
-          tryComplete();
-        },
-      }),
-    );
+    b.subscribe({
+      next: value => {
+        value_b = some(value);
+        tryNext();
+      },
+      complete: () => {
+        completed_b = true;
+        tryComplete();
+      },
+    });
 
     return { unsubscribe };
   });
@@ -289,12 +277,12 @@ export const ksForkJoin = <A, B>(
     let completed_b = false;
     let value_a: Option<A> = none;
     let value_b: Option<B> = none;
-    const subscription_a = lazySubscription();
-    const subscription_b = lazySubscription();
+    const a = _lazy(stream_a);
+    const b = _lazy(stream_b);
 
     const unsubscribe = () => {
-      subscription_b.unsubscribe();
-      subscription_a.unsubscribe();
+      b.unsubscribe();
+      a.unsubscribe();
     };
 
     const tryComplete = () => {
@@ -305,25 +293,21 @@ export const ksForkJoin = <A, B>(
       }
     };
 
-    subscription_a.resolve(
-      stream_a.subscribe({
-        next: value => (value_a = some(value)),
-        complete: () => {
-          completed_a = true;
-          tryComplete();
-        },
-      }),
-    );
+    a.subscribe({
+      next: value => (value_a = some(value)),
+      complete: () => {
+        completed_a = true;
+        tryComplete();
+      },
+    });
 
-    subscription_b.resolve(
-      stream_b.subscribe({
-        next: value => (value_b = some(value)),
-        complete: () => {
-          completed_b = true;
-          tryComplete();
-        },
-      }),
-    );
+    b.subscribe({
+      next: value => (value_b = some(value)),
+      complete: () => {
+        completed_b = true;
+        tryComplete();
+      },
+    });
 
     return { unsubscribe };
   });

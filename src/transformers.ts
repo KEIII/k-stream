@@ -7,7 +7,7 @@ import {
   Stream,
   Transformer,
   Unsubscribable,
-  lazySubscription,
+  _lazy,
 } from './core';
 import { some, none, Option, isSome } from './option';
 
@@ -171,10 +171,10 @@ export const ksTakeUntil = <A>(
         }
 
         let isTerminated = false;
-        const notifierSubscription = lazySubscription();
+        const _notifier = _lazy(notifier);
 
         const unsubscribe = () => {
-          notifierSubscription.unsubscribe();
+          _notifier.unsubscribe();
           mainSubscription.unsubscribe();
         };
 
@@ -185,12 +185,10 @@ export const ksTakeUntil = <A>(
           unsubscribe();
         };
 
-        notifierSubscription.resolve(
-          notifier.subscribe({
-            next: terminate,
-            complete: terminate,
-          }),
-        );
+        _notifier.subscribe({
+          next: terminate,
+          complete: terminate,
+        });
 
         return { unsubscribe };
       },
@@ -213,11 +211,11 @@ export const ksTake = <A>(count: number): Transformer<A, A> => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
       let counter = 0;
 
-      const subscription = lazySubscription();
+      const _stream = _lazy(stream);
 
       const onComplete = () => {
         complete();
-        subscription.unsubscribe();
+        _stream.unsubscribe();
       };
 
       const onNext: Next<A> = value => {
@@ -227,12 +225,10 @@ export const ksTake = <A>(count: number): Transformer<A, A> => {
         }
       };
 
-      return subscription.resolve(
-        stream.subscribe({
-          next: onNext,
-          complete: onComplete,
-        }),
-      );
+      return _stream.subscribe({
+        next: onNext,
+        complete: onComplete,
+      });
     });
   };
 };
@@ -245,11 +241,11 @@ export const ksTakeWhile = <A>(
 ): Transformer<A, A> => {
   return stream => {
     return ksCreateStream(stream.behaviour, ({ next, complete }) => {
-      const subscription = lazySubscription();
+      const _stream = _lazy(stream);
 
       const onComplete: Complete = () => {
         complete();
-        subscription.unsubscribe();
+        _stream.unsubscribe();
       };
 
       const onNext: Next<A> = value => {
@@ -260,12 +256,10 @@ export const ksTakeWhile = <A>(
         }
       };
 
-      return subscription.resolve(
-        stream.subscribe({
-          next: onNext,
-          complete: onComplete,
-        }),
-      );
+      return _stream.subscribe({
+        next: onNext,
+        complete: onComplete,
+      });
     });
   };
 };
