@@ -194,20 +194,3 @@ export const ksShare: KsBehaviour = f => createShareStream(f, false);
  * Share source and replay last emissions on subscription.
  */
 export const ksShareReplay: KsBehaviour = f => createShareStream(f, true);
-
-export const ksCreateStream = <A>(
-  behaviour: KsBehaviour,
-  subscriber: SubscriberRequired<A>,
-): Stream<A> => {
-  return behaviour(subscriber);
-};
-
-/**
- * Combine transformers.
- */
-export const ksPipe = <A, B, C>(
-  fab: Transformer<A, B>,
-  fbc: Transformer<B, C>,
-): Transformer<A, C> => {
-  return stream => stream.pipe(fab).pipe(fbc);
-};

@@ -1,7 +1,6 @@
 import {
   asyncScheduler,
   ksCold,
-  ksCreateStream,
   _lazy,
   noop,
   Observable,
@@ -15,7 +14,7 @@ import { Either, left, right } from './either';
  * Observable that immediately completes.
  */
 export const ksEmpty = <A>(): Stream<A> => {
-  return ksCreateStream(ksCold, ({ complete }) => {
+  return ksCold(({ complete }) => {
     complete();
     return { unsubscribe: noop };
   });
@@ -25,7 +24,7 @@ export const ksEmpty = <A>(): Stream<A> => {
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
 export const ksOf = <A>(value: A, behaviour = ksCold): Stream<A> => {
-  return ksCreateStream<A>(behaviour, ({ next, complete }) => {
+  return behaviour(({ next, complete }) => {
     next(value);
     complete();
     return { unsubscribe: noop };
@@ -39,7 +38,7 @@ export const ksConcat = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<A | B> => {
-  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+  return stream_a.behaviour(({ next, complete }) => {
     const b = _lazy(stream_b);
 
     const a = stream_a.subscribe({
@@ -65,7 +64,7 @@ export const ksMerge = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<A | B> => {
-  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+  return stream_a.behaviour(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     const a = _lazy(stream_a);
@@ -110,7 +109,7 @@ export const ksZip = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+  return stream_a.behaviour(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     const queue_a: A[] = [];
@@ -170,7 +169,7 @@ export const ksTimeout = (
   behaviour = ksCold,
   scheduler = asyncScheduler,
 ): Stream<number> => {
-  return ksCreateStream(behaviour, ({ next, complete }) => {
+  return behaviour(({ next, complete }) => {
     const handler = () => {
       next(0);
       complete();
@@ -184,7 +183,7 @@ export const ksInterval = (
   behaviour = ksCold,
   scheduler = asyncScheduler,
 ): Stream<number> => {
-  return ksCreateStream(behaviour, ({ next }) => {
+  return behaviour(({ next }) => {
     let count = 0;
     let unsubscribe = noop;
     const tick = () => {
@@ -213,7 +212,7 @@ export const ksCombineLatest = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+  return stream_a.behaviour(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     let value_a: Option<A> = none;
@@ -272,7 +271,7 @@ export const ksForkJoin = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return ksCreateStream(stream_a.behaviour, ({ next, complete }) => {
+  return stream_a.behaviour(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     let value_a: Option<A> = none;
@@ -317,7 +316,7 @@ export const ksFromPromise = <A, E>(
   promise: Promise<A>,
   behaviour = ksCold,
 ): Stream<Either<E, A>> => {
-  return ksCreateStream(behaviour, ({ next, complete }) => {
+  return behaviour(({ next, complete }) => {
     let on = true;
     promise
       .then(value => {

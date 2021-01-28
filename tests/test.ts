@@ -13,7 +13,6 @@ import {
   ksCold,
   ksCombineLatest,
   ksConcat,
-  ksCreateStream,
   ksDebounce,
   ksDelay,
   ksEmpty,
@@ -27,7 +26,6 @@ import {
   ksOf,
   ksPairwise,
   ksPeriodic,
-  ksPipe,
   ksScan,
   ksShare,
   ksShareReplay,
@@ -117,7 +115,7 @@ describe('ksToPromise', () => {
 
 describe('ksCold', () => {
   it('should ignore emits after complete', async () => {
-    const s = ksCreateStream<number>(ksCold, ({ next, complete }) => {
+    const s = ksCold<number>(({ next, complete }) => {
       next(1);
       complete();
       next(2);
@@ -151,7 +149,7 @@ describe('ksShare', () => {
   });
 
   it('should ignore emits after complete', async () => {
-    const s = ksCreateStream<number>(ksShare, ({ next, complete }) => {
+    const s = ksShare<number>(({ next, complete }) => {
       next(1);
       complete();
       next(2);
@@ -721,20 +719,6 @@ describe('ksScan', () => {
       [0, 1, 2, 3, 4, 5, 6, 7, 8],
       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     ]);
-  });
-});
-
-describe('pipe', () => {
-  it('should create transformer by combining existing', async () => {
-    const p = ksPipe(
-      ksPipe(
-        ksMap((n: number) => n + n),
-        ksMap((n: number) => n * n),
-      ),
-      ksMap((n: number) => String(n)),
-    );
-    const s = ksOf(2).pipe(p);
-    expect((await stackOut(s))[0]).toBe('16');
   });
 });
 

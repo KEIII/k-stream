@@ -1,12 +1,4 @@
-import {
-  Complete,
-  ksCreateStream,
-  ksShareReplay,
-  Next,
-  noop,
-  Observer,
-  Stream,
-} from './core';
+import { Complete, ksShareReplay, Next, noop, Observer, Stream } from './core';
 
 export type BehaviourSubject<A> = Stream<A> & {
   value: A;
@@ -21,7 +13,7 @@ export const ksBehaviourSubject = <A>(
   const state = { isCompleted: false, current: initValue };
   let subjectObserver: Required<Observer<A>> | null = null;
 
-  const stream = ksCreateStream<A>(behaviour, observer => {
+  const stream = behaviour<A>(observer => {
     subjectObserver = observer;
     subjectObserver.next(state.current);
     return { unsubscribe: () => (subjectObserver = null) };

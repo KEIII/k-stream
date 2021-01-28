@@ -1,7 +1,6 @@
 import {
   KsBehaviour,
   Complete,
-  ksCreateStream,
   Next,
   Observer,
   Stream,
@@ -16,7 +15,7 @@ type TimeoutId = ReturnType<typeof setTimeout>;
 export const ksChangeBehaviour = <A>(
   behaviour: KsBehaviour,
 ): Transformer<A, A> => {
-  return stream => ksCreateStream(behaviour, stream.subscribe);
+  return stream => behaviour(stream.subscribe);
 };
 
 /**
@@ -24,7 +23,7 @@ export const ksChangeBehaviour = <A>(
  */
 export const ksMap = <A, B>(project: (value: A) => B): Transformer<A, B> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       return stream.subscribe({
         next: (value: A) => next(project(value)),
         complete,
@@ -38,7 +37,7 @@ export const ksMap = <A, B>(project: (value: A) => B): Transformer<A, B> => {
  */
 export const ksMapTo = <A, B>(value: B): Transformer<A, B> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       return stream.subscribe({
         next: () => next(value),
         complete,
@@ -52,7 +51,7 @@ export const ksMapTo = <A, B>(value: B): Transformer<A, B> => {
  */
 export const ksTap = <A>(observer: Observer<A>): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       return stream.subscribe({
         next: value => {
           observer.next?.(value);
@@ -74,7 +73,7 @@ export const ksFilterMap = <A, B>(
   select: (value: A) => Option<B>,
 ): Transformer<A, B> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       return stream.subscribe({
         next: value => {
           const valueOptional = select(value);
@@ -95,7 +94,7 @@ export const ksSwitch = <A, B>(
   project: (value: A) => Stream<B>,
 ): Transformer<A, B> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let projectSubscription: Unsubscribable | null = null;
       let projectCompleted = false;
       let mainCompleted = false;
@@ -153,46 +152,43 @@ export const ksTakeUntil = <A>(
   notifier: Stream<unknown>,
 ): Transformer<A, A> => {
   return stream => {
-    const newStream = ksCreateStream<A>(
-      stream.behaviour,
-      ({ next, complete }) => {
-        let isCompleted = false;
+    const newStream = stream.behaviour<A>(({ next, complete }) => {
+      let isCompleted = false;
 
-        const mainSubscription = stream.subscribe({
-          next,
-          complete: () => {
-            isCompleted = true;
-            complete();
-          },
-        });
-
-        if (isCompleted) {
-          return mainSubscription;
-        }
-
-        let isTerminated = false;
-        const _notifier = _lazy(notifier);
-
-        const unsubscribe = () => {
-          _notifier.unsubscribe();
-          mainSubscription.unsubscribe();
-        };
-
-        const terminate = () => {
-          if (isTerminated) return;
-          isTerminated = true;
+      const mainSubscription = stream.subscribe({
+        next,
+        complete: () => {
+          isCompleted = true;
           complete();
-          unsubscribe();
-        };
+        },
+      });
 
-        _notifier.subscribe({
-          next: terminate,
-          complete: terminate,
-        });
+      if (isCompleted) {
+        return mainSubscription;
+      }
 
-        return { unsubscribe };
-      },
-    );
+      let isTerminated = false;
+      const _notifier = _lazy(notifier);
+
+      const unsubscribe = () => {
+        _notifier.unsubscribe();
+        mainSubscription.unsubscribe();
+      };
+
+      const terminate = () => {
+        if (isTerminated) return;
+        isTerminated = true;
+        complete();
+        unsubscribe();
+      };
+
+      _notifier.subscribe({
+        next: terminate,
+        complete: terminate,
+      });
+
+      return { unsubscribe };
+    });
 
     return {
       ...newStream,
@@ -208,7 +204,7 @@ export const ksTakeUntil = <A>(
  */
 export const ksTake = <A>(count: number): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let counter = 0;
 
       const _stream = _lazy(stream);
@@ -240,7 +236,7 @@ export const ksTakeWhile = <A>(
   predicate: (value: A) => boolean,
 ): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       const _stream = _lazy(stream);
 
       const onComplete: Complete = () => {
@@ -269,7 +265,7 @@ export const ksTakeWhile = <A>(
  */
 export const ksDelay = <A>(ms: number): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       const timers = new Set<TimeoutId>();
 
       const clearTimers = () => {
@@ -309,7 +305,7 @@ export const ksDelay = <A>(ms: number): Transformer<A, A> => {
  */
 export const ksDebounce = <A>(dueTime: number): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let timeoutId: TimeoutId;
       let lastValue: Option<A> = none;
 
@@ -353,7 +349,7 @@ export const ksDebounce = <A>(dueTime: number): Transformer<A, A> => {
  */
 export const ksThrottle = <A>(duration: number): Transformer<A, A> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let executedTime = Number.MIN_SAFE_INTEGER;
       let lastValue: Option<A> = none;
 
@@ -392,7 +388,7 @@ export const ksThrottle = <A>(duration: number): Transformer<A, A> => {
  */
 export const ksPairwise = <A>(): Transformer<A, [A, A]> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let prevValue: Option<A> = none;
       return stream.subscribe({
         next: value => {
@@ -415,7 +411,7 @@ export const ksScan = <A, B>(
   seed: B,
 ): Transformer<A, B> => {
   return stream => {
-    return ksCreateStream(stream.behaviour, ({ next, complete }) => {
+    return stream.behaviour(({ next, complete }) => {
       let acc = seed;
       return stream.subscribe({
         next: value => {
