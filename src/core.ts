@@ -48,6 +48,10 @@ export const asyncScheduler: Scheduler = {
   },
 };
 
+/**
+ * Creates new observable object with `unsubscribe()` method
+ * what could be called before `subscribe()`.
+ */
 export const _lazy = <A>(observable: {
   subscribe: (observer: A) => Unsubscribable;
 }) => {
