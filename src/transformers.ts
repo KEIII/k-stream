@@ -115,14 +115,8 @@ export const ksSwitch = <A, B>(
         tryComplete();
       };
 
-      const tryUnsubscribeProject = () => {
-        if (projectSubscription !== null) {
-          projectSubscription.unsubscribe();
-        }
-      };
-
       const onMainNext = (value: A) => {
-        tryUnsubscribeProject();
+        projectSubscription?.unsubscribe();
         projectCompleted = false;
         projectSubscription = project(value).subscribe({
           next,
@@ -137,7 +131,7 @@ export const ksSwitch = <A, B>(
 
       return {
         unsubscribe: () => {
-          tryUnsubscribeProject();
+          projectSubscription?.unsubscribe();
           mainSubscription.unsubscribe();
         },
       };

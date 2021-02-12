@@ -26,9 +26,7 @@ export const ksBehaviourSubject = <A>(
       );
     }
     state.current = value;
-    if (subjectObserver !== null) {
-      subjectObserver.next(value);
-    }
+    subjectObserver?.next(value);
   };
 
   return {
@@ -44,9 +42,7 @@ export const ksBehaviourSubject = <A>(
     behaviour: stream.behaviour,
     complete: () => {
       state.isCompleted = true;
-      if (subjectObserver !== null) {
-        subjectObserver.complete();
-      }
+      subjectObserver?.complete();
     },
     next,
     set value(value: A) {
