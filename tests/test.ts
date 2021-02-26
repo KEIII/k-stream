@@ -209,6 +209,16 @@ describe('ksShare', () => {
     s.subscribe({});
     expect(s.lastValue).toBeUndefined();
   });
+
+  it('should deal with circular dependencies', async () => {
+    const a = ksOf(42, ksShareReplay);
+    const b = a
+      .pipe(ksSwitch(() => a))
+      .pipe(ksSwitch(() => a))
+      .pipe(ksSwitch(() => a))
+      .pipe(ksSwitch(() => a));
+    expect(await stackOut(b)).toEqual([42]);
+  });
 });
 
 describe('ksShareReplay', () => {

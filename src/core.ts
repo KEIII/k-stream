@@ -124,10 +124,12 @@ const createShareStream = <A>(
         'Logic error: Ignore call `next` on completed stream.',
       );
     }
+    observersMap.forEach(observer => observer.next?.(value));
+    // We need to save last value after notify observers
+    // to prevent duplicates with circular dependencies
     if (replay) {
       lastValue = some(value);
     }
-    observersMap.forEach(observer => observer.next?.(value));
   };
 
   const onComplete: Complete = () => {
@@ -166,8 +168,11 @@ const createShareStream = <A>(
 
     observersMap.set(subscribeId, observer);
 
-    // NOTE: we need to create subscription after added observer
+    // We need to create subscription after added observer into observersMap
     if (subscription === null) {
+      // First we need to make `subscription` not equals `null`
+      // to prevent `Maximum call stack size exceeded` with circular dependencies
+      subscription = { unsubscribe: noop };
       subscription = subscriber({
         next: onNext,
         complete: onComplete,
