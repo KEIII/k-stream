@@ -115,10 +115,16 @@ export const ksSwitch = <A, B>(
         tryComplete();
       };
 
+      let prevProjected: Stream<B>;
+
       const onMainNext = (value: A) => {
+        const projected = project(value);
+        if (projected === prevProjected) {
+          return;
+        }
+        prevProjected = projected;
         projectSubscription?.unsubscribe();
-        projectCompleted = false;
-        projectSubscription = project(value).subscribe({
+        projectSubscription = prevProjected.subscribe({
           next,
           complete: onProjectComplete,
         });

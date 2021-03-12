@@ -124,12 +124,12 @@ const createShareStream = <A>(
         'Logic error: Ignore call `next` on completed stream.',
       );
     }
-    observersMap.forEach(observer => observer.next?.(value));
-    // We need to save last value after notify observers
-    // to prevent duplicates with circular dependencies
+    // We need to save last value before notify observers
+    // it leads to duplicates with circular dependencies but more consistent
     if (replay) {
       lastValue = some(value);
     }
+    observersMap.forEach(observer => observer.next?.(value));
   };
 
   const onComplete: Complete = () => {
