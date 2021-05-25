@@ -58,6 +58,7 @@ import {
   isLeft,
   _lazy,
   SubscriberRequired,
+  ksNever,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -75,6 +76,18 @@ const stackOut = <A>(observable: {
     });
   });
 };
+
+describe('ksNever', () => {
+  it('should create a cold observable that never emits ', () => {
+    let x;
+    ksNever.subscribe({ next: (v: never) => (x = v) }).unsubscribe();
+    expect(x).toBeUndefined();
+  });
+
+  it('should return the same instance every time', () => {
+    expect(ksNever).toBe(ksNever);
+  });
+});
 
 describe('ksFromPromise', () => {
   it('should create stream from promise and resolve', async () => {

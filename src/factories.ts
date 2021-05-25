@@ -11,6 +11,11 @@ import { isSome, none, Option, some } from './option';
 import { Either, left, right } from './either';
 
 /**
+ * Observable that emits no items and does not terminate.
+ */
+export const ksNever: Stream<never> = ksCold(() => ({ unsubscribe: noop }));
+
+/**
  * Observable that immediately completes.
  */
 export const ksEmpty = <A>(): Stream<A> => {
