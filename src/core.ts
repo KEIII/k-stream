@@ -79,7 +79,7 @@ export const ksCold: KsBehaviour = <A>(
 ): Stream<A> => {
   const subscribe: Subscriber<A> = observer => {
     let isCompleted = false;
-    return subscriber({
+    const { unsubscribe } = subscriber({
       next: value => {
         if (isCompleted) {
           return console.warn(
@@ -98,6 +98,12 @@ export const ksCold: KsBehaviour = <A>(
         observer.complete?.();
       },
     });
+    return {
+      unsubscribe: () => {
+        observer = {}; // stop emitting values after unsubscribe
+        unsubscribe();
+      },
+    };
   };
 
   const stream: Stream<A> = {

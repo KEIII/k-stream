@@ -149,6 +149,20 @@ describe('ksCold', () => {
     s.subscribe({});
     expect(s.lastValue).toBeUndefined();
   });
+
+  it('should stop emitting values after unsubscribe', async () => {
+    const s = ksTimeout(0, ksCold).pipe(
+      ksTap({
+        next: () => {
+          unsubscribe();
+        },
+      }),
+    );
+    let x = 1;
+    const { unsubscribe } = s.subscribe({ next: v => (x = v) });
+    await stackOut(ksTimeout(10));
+    expect(x).toBe(1);
+  });
 });
 
 describe('ksShare', () => {
@@ -227,6 +241,20 @@ describe('ksShare', () => {
       .pipe(ksSwitch(() => a))
       .pipe(ksSwitch(() => a));
     expect(await stackOut(b)).toEqual([42, 42]);
+  });
+
+  it('should stop emitting values after unsubscribe', async () => {
+    const s = ksTimeout(0, ksShare).pipe(
+      ksTap({
+        next: () => {
+          unsubscribe();
+        },
+      }),
+    );
+    let x = 1;
+    const { unsubscribe } = s.subscribe({ next: v => (x = v) });
+    await stackOut(ksTimeout(10));
+    expect(x).toBe(1);
   });
 });
 
@@ -637,6 +665,21 @@ describe('ksBehaviourSubject', () => {
       .pipe(ksTake(1));
     expect(await stackOut(s)).toEqual([25]);
   });
+
+  it('should stop emitting values after unsubscribe', async () => {
+    const a = ksBehaviourSubject<number>(0);
+    const s = a.pipe(ksDelay(0)).pipe(
+      ksTap({
+        next: () => {
+          unsubscribe();
+        },
+      }),
+    );
+    let x = 1;
+    const { unsubscribe } = s.subscribe({ next: v => (x = v) });
+    await stackOut(ksTimeout(10));
+    expect(x).toBe(1);
+  });
 });
 
 describe('ksSubject', () => {
@@ -661,6 +704,21 @@ describe('ksSubject', () => {
     s.subscribe({ next: noop, complete: noop });
     s.next(42);
     expect(await stackOut(s)).toEqual([]);
+  });
+
+  it('should stop emitting values after unsubscribe', async () => {
+    const a = ksSubject<number>();
+    const s = a.pipe(
+      ksTap({
+        next: () => {
+          unsubscribe();
+        },
+      }),
+    );
+    let x = 1;
+    const { unsubscribe } = s.subscribe({ next: v => (x = v) });
+    a.next(0);
+    expect(x).toBe(1);
   });
 });
 
