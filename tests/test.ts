@@ -307,6 +307,23 @@ describe('ksShareReplay', () => {
     s.subscribe({});
     expect(await stackOut(s)).toEqual([0, 1]);
   });
+
+  it('should reset completed stream after all unsubscribes', async () => {
+    let result: unknown = null;
+    let counter = 0;
+    const stream = ksShareReplay<number>(o => {
+      o.next(++counter);
+      o.complete();
+      return { unsubscribe: noop };
+    });
+    const next = (x: number) => (result = x);
+    const s1 = stream.subscribe({ next }); // counter = 1
+    const s2 = stream.subscribe({ next }); // counter = 1
+    s1.unsubscribe();
+    s2.unsubscribe();
+    stream.subscribe({ next }).unsubscribe(); // counter = 2
+    expect(result).toBe(2);
+  });
 });
 
 describe('ksTimeout', () => {

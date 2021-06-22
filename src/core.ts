@@ -162,13 +162,10 @@ const createShareStream = <A>(
     const unsubscribe = () => {
       observersMap.delete(subscribeId);
       if (observersMap.size === 0) {
-        if (replay) {
-          lastValue = none;
-        }
-        if (subscription !== null) {
-          subscription.unsubscribe();
-          subscription = null;
-        }
+        isCompleted = false;
+        lastValue = none;
+        subscription?.unsubscribe();
+        subscription = null;
       }
     };
 
