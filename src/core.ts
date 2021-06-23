@@ -55,18 +55,17 @@ export const asyncScheduler: Scheduler = {
 export const _lazy = <A>(observable: {
   subscribe: (observer: A) => Unsubscribable;
 }) => {
-  let resolve: (subscription: Unsubscribable) => void;
-  const promise = new Promise<Unsubscribable>(r => {
-    resolve = r;
-  });
+  let unsubscribed = false;
+  let subscription: Unsubscribable | undefined;
   return {
     subscribe: (observer: A): Unsubscribable => {
-      const subscription = observable.subscribe(observer);
-      resolve(subscription);
+      if (unsubscribed) return { unsubscribe: noop };
+      subscription = observable.subscribe(observer);
       return subscription;
     },
     unsubscribe: () => {
-      promise.then(subscription => subscription.unsubscribe());
+      unsubscribed = true;
+      subscription?.unsubscribe();
     },
   };
 };
