@@ -123,11 +123,12 @@ export const ksSwitch = <A, B>(
           return;
         }
         prevProjected = projected;
-        projectSubscription?.unsubscribe();
+        const projectUnsubscribe = projectSubscription?.unsubscribe;
         projectSubscription = prevProjected.subscribe({
           next,
           complete: onProjectComplete,
         });
+        projectUnsubscribe?.(); // NOTE: we need to unsubscribe after create new subscription on projected stream
       };
 
       const mainSubscription = stream.subscribe({

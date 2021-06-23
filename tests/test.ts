@@ -510,6 +510,20 @@ describe('ksSwitch', () => {
     const s = ksOf(0).pipe(ksSwitch(ksEmpty));
     expect(await stackOut(s)).toEqual([]);
   });
+
+  it('should unsubscribe after create new subscription on projected stream', async () => {
+    let count = 0;
+    const a = ksShareReplay(o => {
+      o.next(++count);
+      o.complete();
+      return { unsubscribe: noop };
+    });
+    const b = ksSubject();
+    b.pipe(ksSwitch(() => a.pipe(ksMap(x => x)))).subscribe({});
+    b.next(null);
+    b.next(null);
+    expect(count).toBe(1);
+  });
 });
 
 describe('ksTakeUntil', () => {

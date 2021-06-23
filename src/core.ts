@@ -121,7 +121,7 @@ const createShareStream = <A>(
   let isCompleted = false;
   let lastValue: Option<A> = none;
   let subscription: Unsubscribable | null = null;
-  const observersMap = new Map<Symbol, Observer<A>>();
+  const observersMap = new Map<symbol, Observer<A>>();
 
   const onNext: Next<A> = value => {
     if (isCompleted) {
