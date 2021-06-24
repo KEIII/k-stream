@@ -15,7 +15,7 @@ jobs:
       - name: Install Dependencies
         run: npm ci
       - name: Run test with coverage
-        run: npm run test -- --coverage
+        run: npm run test -- --coverage --runInBand --detectOpenHandles --forceExit
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
