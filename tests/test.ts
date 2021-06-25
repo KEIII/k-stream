@@ -145,8 +145,9 @@ describe('ksCold', () => {
       return { unsubscribe: noop };
     });
     let result = 0;
-    s.subscribe({ next: v => (result = v) });
+    const { unsubscribe } = s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
+    unsubscribe();
   });
 
   it('should emit different values', async () => {
@@ -159,8 +160,9 @@ describe('ksCold', () => {
 
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksCold);
-    s.subscribe({});
+    const { unsubscribe } = s.subscribe({});
     expect(s.lastValue).toBeUndefined();
+    unsubscribe();
   });
 
   it('should stop emitting values after unsubscribe', async () => {
@@ -175,6 +177,7 @@ describe('ksCold', () => {
     const { unsubscribe } = s.subscribe({ next: v => (x = v) });
     await stackOut(ksTimeout(10));
     expect(x).toBe(1);
+    unsubscribe();
   });
 });
 
@@ -193,17 +196,18 @@ describe('ksShare', () => {
       return { unsubscribe: noop };
     });
     let result = 0;
-    s.subscribe({ next: v => (result = v) });
+    const { unsubscribe } = s.subscribe({ next: v => (result = v) });
     expect(result).toBe(1);
+    unsubscribe();
   });
 
   it('should not emit after second subscribe', async () => {
     const s = ksOf(1, ksShare);
     let emitted = false;
-    const s1 = s.subscribe({});
-    const s2 = s.subscribe({ next: () => (emitted = true) });
-    s1.unsubscribe();
-    s2.unsubscribe();
+    const sub1 = s.subscribe({});
+    const sub2 = s.subscribe({ next: () => (emitted = true) });
+    sub1.unsubscribe();
+    sub2.unsubscribe();
     expect(emitted).toBeFalsy();
   });
 
@@ -242,8 +246,9 @@ describe('ksShare', () => {
 
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksShare);
-    s.subscribe({});
+    const { unsubscribe } = s.subscribe({});
     expect(s.lastValue).toBeUndefined();
+    unsubscribe();
   });
 
   it('should deal with circular dependencies', async () => {
@@ -268,6 +273,7 @@ describe('ksShare', () => {
     const { unsubscribe } = s.subscribe({ next: v => (x = v) });
     await stackOut(ksTimeout(10));
     expect(x).toBe(1);
+    unsubscribe();
   });
 });
 
@@ -282,6 +288,7 @@ describe('ksShareReplay', () => {
       }, 1_000);
     });
     expect(await p).toEqual(8);
+    sub.unsubscribe();
   });
 
   it('should not affect original stream', async () => {
@@ -297,15 +304,18 @@ describe('ksShareReplay', () => {
 
   it('should return last emitted value', () => {
     const s = ksOf(42, ksShareReplay);
-    s.subscribe({});
+    const { unsubscribe } = s.subscribe({});
     expect(s.lastValue).toEqual(42);
+    unsubscribe();
   });
 
   it('should try to emit last value with blank observer', async () => {
     const s = ksPeriodic(0, ksShareReplay).pipe(ksTake(2));
-    s.subscribe({});
-    s.subscribe({});
+    const sub1 = s.subscribe({});
+    const sub2 = s.subscribe({});
     expect(await stackOut(s)).toEqual([0, 1]);
+    sub1.unsubscribe();
+    sub2.unsubscribe();
   });
 
   it('should reset completed stream after all unsubscribes', async () => {
@@ -317,10 +327,10 @@ describe('ksShareReplay', () => {
       return { unsubscribe: noop };
     });
     const next = (x: number) => (result = x);
-    const s1 = stream.subscribe({ next }); // counter = 1
-    const s2 = stream.subscribe({ next }); // counter = 1
-    s1.unsubscribe();
-    s2.unsubscribe();
+    const sub1 = stream.subscribe({ next }); // counter = 1
+    const sub2 = stream.subscribe({ next }); // counter = 1
+    sub1.unsubscribe();
+    sub2.unsubscribe();
     stream.subscribe({ next }).unsubscribe(); // counter = 2
     expect(result).toBe(2);
   });
@@ -519,9 +529,12 @@ describe('ksSwitch', () => {
       return { unsubscribe: noop };
     });
     const b = ksSubject();
-    b.pipe(ksSwitch(() => a.pipe(ksMap(x => x)))).subscribe({});
+    const { unsubscribe } = b
+      .pipe(ksSwitch(() => a.pipe(ksMap(x => x))))
+      .subscribe({});
     b.next(null);
     b.next(null);
+    unsubscribe();
     expect(count).toBe(1);
   });
 });
@@ -685,8 +698,9 @@ describe('ksBehaviourSubject', () => {
   it('should test subscribe blank observer after complete', async () => {
     const s = ksBehaviourSubject(1);
     s.complete();
-    s.subscribe({});
+    const { unsubscribe } = s.subscribe({});
     expect(await stackOut(s)).toEqual([1]);
+    unsubscribe();
   });
 
   it('should emit same values on multiple subscription', async () => {
@@ -723,6 +737,7 @@ describe('ksBehaviourSubject', () => {
     const { unsubscribe } = s.subscribe({ next: v => (x = v) });
     await stackOut(ksTimeout(10));
     expect(x).toBe(1);
+    unsubscribe();
   });
 });
 
@@ -744,10 +759,12 @@ describe('ksSubject', () => {
   it('should test subscribe after complete', async () => {
     const s = ksSubject();
     s.complete();
-    s.subscribe({});
-    s.subscribe({ next: noop, complete: noop });
+    const sub1 = s.subscribe({});
+    const sub2 = s.subscribe({ next: noop, complete: noop });
     s.next(42);
     expect(await stackOut(s)).toEqual([]);
+    sub1.unsubscribe();
+    sub2.unsubscribe();
   });
 
   it('should stop emitting values after unsubscribe', async () => {
@@ -763,6 +780,7 @@ describe('ksSubject', () => {
     const { unsubscribe } = s.subscribe({ next: v => (x = v) });
     a.next(0);
     expect(x).toBe(1);
+    unsubscribe();
   });
 });
 
@@ -887,7 +905,7 @@ describe('diamond problem (glitches)', () => {
     );
 
     const view = jest.fn();
-    displayName.subscribe({ next: view });
+    const sub = displayName.subscribe({ next: view });
     expect(view.mock.calls.length).toBe(1);
 
     firstName.next('Joseph');
@@ -895,6 +913,8 @@ describe('diamond problem (glitches)', () => {
 
     firstName.next('Jooooooooooooooseph');
     expect(view.mock.calls.length).toBe(4);
+
+    sub.unsubscribe();
   });
 
   test('k-stream with display name', () => {
@@ -909,7 +929,7 @@ describe('diamond problem (glitches)', () => {
     );
 
     const view = jest.fn();
-    displayName.subscribe({ next: view });
+    const { unsubscribe } = displayName.subscribe({ next: view });
     expect(view.mock.calls.length).toBe(2);
     expect(displayName.lastValue).toBe('John Doe');
 
@@ -928,6 +948,8 @@ describe('diamond problem (glitches)', () => {
       'Jooooooooooooooseph',
       'Jooooooooooooooseph',
     ]);
+
+    unsubscribe();
   });
 
   test('alphabet glitches', async () => {
