@@ -604,7 +604,7 @@ it('should works like RxJS (in some cases ;)', async () => {
   const ms = 4500;
   const random = Math.random();
 
-  const a = ksPeriodic(10)
+  const a = ksPeriodic(16)
     .pipe(
       ksSwitch(n => {
         return ksConcat(
@@ -618,7 +618,7 @@ it('should works like RxJS (in some cases ;)', async () => {
     .pipe(ksTap({}))
     .pipe(ksTakeUntil(ksTimeout(ms)));
 
-  const b = timer(0, 10).pipe(
+  const b = timer(0, 16).pipe(
     switchMap(n => {
       return concat(of(n), timer(200).pipe(mapTo(random), take(1)));
     }),

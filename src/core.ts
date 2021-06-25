@@ -60,12 +60,14 @@ export const _lazy = <A>(observable: {
   return {
     subscribe: (observer: A): Unsubscribable => {
       if (unsubscribed) return { unsubscribe: noop };
+      subscription?.unsubscribe();
       subscription = observable.subscribe(observer);
       return subscription;
     },
     unsubscribe: () => {
       unsubscribed = true;
-      subscription?.unsubscribe();
+      // NODE: delay unsubscribe call to prevent open handles
+      Promise.resolve().then(() => subscription?.unsubscribe());
     },
   };
 };

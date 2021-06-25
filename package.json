@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "rm -rf ./dist && tsc",
-    "test": "jest",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
     "prettier": "prettier --write ./src/*.ts",
     "version-patch": "npm version patch"
   },
