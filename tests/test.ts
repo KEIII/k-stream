@@ -70,8 +70,8 @@ const stackOut = <A>(observable: {
     _observable.subscribe({
       next: v => output.push(v),
       complete: () => {
+        _observable.unsubscribe();
         resolve(output);
-        _observable.unsubscribe(); // not necessary but increase test coverage ;)
       },
     });
   });

@@ -210,21 +210,17 @@ export const ksTake = <A>(count: number): Transformer<A, A> => {
 
       const _stream = _lazy(stream);
 
-      const onComplete = () => {
-        complete();
-        _stream.unsubscribe();
-      };
-
       const onNext: Next<A> = value => {
         next(value);
         if (++counter >= count) {
-          onComplete();
+          _stream.unsubscribe();
+          complete();
         }
       };
 
       return _stream.subscribe({
         next: onNext,
-        complete: onComplete,
+        complete,
       });
     });
   };

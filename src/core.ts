@@ -66,8 +66,10 @@ export const _lazy = <A>(observable: {
     },
     unsubscribe: () => {
       unsubscribed = true;
-      // NODE: delay unsubscribe call to prevent open handles
-      Promise.resolve().then(() => subscription?.unsubscribe());
+      // NODE: delay call unsubscribe() to ensure subscription was fully initialized
+      Promise.resolve().then(() => {
+        subscription?.unsubscribe();
+      });
     },
   };
 };
