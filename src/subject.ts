@@ -1,4 +1,11 @@
-import { Complete, Next, Observer, Stream, noop, ksShare } from './core';
+import {
+  Complete,
+  Next,
+  Observer,
+  Stream,
+  ksShare,
+  noopUnsubscribe,
+} from './core';
 
 export type Subject<A> = Stream<A> & {
   readonly next: (value: A) => void;
@@ -21,14 +28,14 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
 
   const stream = behaviour<A>(observer => {
     subjectObserver = observer;
-    return { unsubscribe: noop };
+    return noopUnsubscribe;
   });
 
   return {
     subscribe: observer => {
       if (isCompleted) {
         observer.complete?.();
-        return { unsubscribe: noop };
+        return noopUnsubscribe;
       }
       return stream.subscribe(observer);
     },

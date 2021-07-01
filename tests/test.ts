@@ -50,7 +50,6 @@ import {
   ksToPromise,
   ksZip,
   none,
-  noop,
   some,
   ksSubject,
   right,
@@ -61,6 +60,7 @@ import {
   SubscriberRequired,
   ksNever,
   Scheduler,
+  noopUnsubscribe,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -144,7 +144,7 @@ describe('ksCold', () => {
       complete();
       next(2);
       complete();
-      return { unsubscribe: noop };
+      return noopUnsubscribe;
     });
     let result = 0;
     const { unsubscribe } = s.subscribe({ next: v => (result = v) });
@@ -195,7 +195,7 @@ describe('ksShare', () => {
       complete();
       next(2);
       complete();
-      return { unsubscribe: noop };
+      return noopUnsubscribe;
     });
     let result = 0;
     const { unsubscribe } = s.subscribe({ next: v => (result = v) });
@@ -326,7 +326,7 @@ describe('ksShareReplay', () => {
     const stream = ksShareReplay<number>(o => {
       o.next(++counter);
       o.complete();
-      return { unsubscribe: noop };
+      return noopUnsubscribe;
     });
     const next = (x: number) => (result = x);
     const sub1 = stream.subscribe({ next }); // counter = 1
@@ -528,7 +528,7 @@ describe('ksSwitch', () => {
     const a = ksShareReplay(o => {
       o.next(++count);
       o.complete();
-      return { unsubscribe: noop };
+      return noopUnsubscribe;
     });
     const b = ksSubject();
     const { unsubscribe } = b
@@ -775,7 +775,7 @@ describe('ksSubject', () => {
     const s = ksSubject();
     s.complete();
     const sub1 = s.subscribe({});
-    const sub2 = s.subscribe({ next: noop, complete: noop });
+    const sub2 = s.subscribe({ next: () => void 0, complete: () => void 0 });
     s.next(42);
     expect(await stackOut(s)).toEqual([]);
     sub1.unsubscribe();

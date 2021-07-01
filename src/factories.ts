@@ -2,9 +2,9 @@ import {
   asyncScheduler,
   ksCold,
   _lazy,
-  noop,
   Observable,
   Stream,
+  noopUnsubscribe,
 } from './core';
 import { ksMap } from './transformers';
 import { isSome, none, Option, some } from './option';
@@ -13,7 +13,7 @@ import { Either, left, right } from './either';
 /**
  * Observable that emits no items and does not terminate.
  */
-export const ksNever: Stream<never> = ksCold(() => ({ unsubscribe: noop }));
+export const ksNever: Stream<never> = ksCold(() => noopUnsubscribe);
 
 /**
  * Observable that immediately completes.
@@ -21,7 +21,7 @@ export const ksNever: Stream<never> = ksCold(() => ({ unsubscribe: noop }));
 export const ksEmpty = <A>(): Stream<A> => {
   return ksCold(({ complete }) => {
     complete();
-    return { unsubscribe: noop };
+    return noopUnsubscribe;
   });
 };
 
@@ -32,7 +32,7 @@ export const ksOf = <A>(value: A, behaviour = ksCold): Stream<A> => {
   return behaviour(({ next, complete }) => {
     next(value);
     complete();
-    return { unsubscribe: noop };
+    return noopUnsubscribe;
   });
 };
 
@@ -196,16 +196,16 @@ export const ksInterval = (
 ): Stream<number> => {
   return behaviour(({ next }) => {
     let count = 0;
-    let unsubscribe = noop;
+    let sub = noopUnsubscribe;
     const tick = () => {
-      unsubscribe = scheduler.schedule(handler, ms).unsubscribe;
+      sub = scheduler.schedule(handler, ms);
     };
     const handler = () => {
       next(count++);
       tick();
     };
     tick();
-    return { unsubscribe: () => unsubscribe() };
+    return { unsubscribe: () => sub.unsubscribe() };
   });
 };
 

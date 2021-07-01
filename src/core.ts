@@ -35,7 +35,7 @@ export type Stream<A> = Observable<A> & {
 
 export type KsBehaviour = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
 
-export const noop: () => void = () => void 0;
+export const noopUnsubscribe: Unsubscribable = { unsubscribe: () => void 0 };
 
 export type Scheduler = {
   schedule: (handler: () => void, ms: number) => Unsubscribable;
@@ -59,7 +59,7 @@ export const _lazy = <A>(observable: {
   let subscription: Unsubscribable | undefined;
   return {
     subscribe: (observer: A): Unsubscribable => {
-      if (unsubscribed) return { unsubscribe: noop };
+      if (unsubscribed) return noopUnsubscribe;
       subscription?.unsubscribe();
       subscription = observable.subscribe(observer);
       return subscription;
@@ -153,7 +153,7 @@ const createShareStream = <A>(
 
   const subscribe: Subscriber<A> = observer => {
     if (isCompleted) {
-      return { unsubscribe: noop };
+      return noopUnsubscribe;
     }
 
     if (replay && isSome(lastValue)) {
@@ -178,7 +178,7 @@ const createShareStream = <A>(
     if (subscription === null) {
       // First we need to make `subscription` not equals `null`
       // to prevent `Maximum call stack size exceeded` with circular dependencies
-      subscription = { unsubscribe: noop };
+      subscription = noopUnsubscribe;
       subscription = subscriber({
         next: onNext,
         complete: onComplete,

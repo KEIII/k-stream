@@ -1,4 +1,11 @@
-import { Complete, ksShareReplay, Next, noop, Observer, Stream } from './core';
+import {
+  Complete,
+  ksShareReplay,
+  Next,
+  noopUnsubscribe,
+  Observer,
+  Stream,
+} from './core';
 
 export type BehaviourSubject<A> = Stream<A> & {
   value: A;
@@ -34,7 +41,7 @@ export const ksBehaviourSubject = <A>(
       if (state.isCompleted) {
         observer.next?.(state.current);
         observer.complete?.();
-        return { unsubscribe: noop };
+        return noopUnsubscribe;
       }
       return stream.subscribe(observer);
     },
