@@ -169,6 +169,9 @@ export const ksZip = <A, B>(
   });
 };
 
+/**
+ * Emits a single item after a delay period.
+ */
 export const ksTimeout = (
   ms: number,
   behaviour = ksCold,
@@ -183,6 +186,9 @@ export const ksTimeout = (
   });
 };
 
+/**
+ * After given duration, emit numbers in sequence every specified duration.
+ */
 export const ksInterval = (
   ms: number,
   behaviour = ksCold,
@@ -203,10 +209,17 @@ export const ksInterval = (
   });
 };
 
-export const ksPeriodic = (ms: number, behaviour = ksCold): Stream<number> => {
+/**
+ * Emit numbers in sequence every specified duration.
+ */
+export const ksPeriodic = (
+  ms: number,
+  behaviour = ksCold,
+  scheduler = asyncScheduler,
+): Stream<number> => {
   return ksConcat(
     ksOf(0, behaviour),
-    ksInterval(ms, behaviour).pipe(ksMap(n => n + 1)),
+    ksInterval(ms, behaviour, scheduler).pipe(ksMap(n => n + 1)),
   );
 };
 
