@@ -6,6 +6,7 @@ import {
   merge,
   of,
   timer,
+  asapScheduler,
 } from 'rxjs';
 import {
   map,
@@ -59,6 +60,7 @@ import {
   _lazy,
   SubscriberRequired,
   ksNever,
+  Scheduler,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -604,12 +606,22 @@ it('should works like RxJS (in some cases ;)', async () => {
   const ms = 4500;
   const random = Math.random();
 
-  const a = ksPeriodic(16)
+  const ksAsapScheduler: Scheduler = {
+    schedule: handler => {
+      let on = true;
+      Promise.resolve(() => on && handler());
+      return { unsubscribe: () => (on = false) };
+    },
+  };
+
+  const a = ksPeriodic(16, undefined, ksAsapScheduler)
     .pipe(
       ksSwitch(n => {
         return ksConcat(
           ksOf(n),
-          ksTimeout(200).pipe(ksMapTo(random)).pipe(ksTake(1)),
+          ksTimeout(200, undefined, ksAsapScheduler)
+            .pipe(ksMapTo(random))
+            .pipe(ksTake(1)),
         );
       }),
     )
@@ -618,9 +630,12 @@ it('should works like RxJS (in some cases ;)', async () => {
     .pipe(ksTap({}))
     .pipe(ksTakeUntil(ksTimeout(ms)));
 
-  const b = timer(0, 16).pipe(
+  const b = timer(0, 16, asapScheduler).pipe(
     switchMap(n => {
-      return concat(of(n), timer(200).pipe(mapTo(random), take(1)));
+      return concat(
+        of(n),
+        timer(200, asapScheduler).pipe(mapTo(random), take(1)),
+      );
     }),
     map(x => x * x),
     pairwise(),
