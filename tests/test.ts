@@ -876,6 +876,22 @@ describe('ksScan', () => {
   });
 });
 
+describe('ksPairwise', () => {
+  it('should emit the previous and current values as an array', async () => {
+    const s = ksCold(({ next, complete }) => {
+      next(1);
+      next(2);
+      next(3);
+      complete();
+      return noopUnsubscribe;
+    }).pipe(ksPairwise());
+    expect(await stackOut(s)).toEqual([
+      [1, 2],
+      [2, 3],
+    ]);
+  });
+});
+
 describe('performance', () => {
   it('maximum call stack size exceeded', () => {
     const m = ksMap((x: number) => x + 1);
