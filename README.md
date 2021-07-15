@@ -38,6 +38,4 @@ const stream = ksShare<MouseEvent>(observer => {
 ## ToDo
 - withLatestFrom
 - audit
-- repeat
-- repeatWhen
 - ...etc.

@@ -61,6 +61,9 @@ import {
   ksNever,
   Scheduler,
   noopUnsubscribe,
+  ksRepeat,
+  ksRepeatWhen,
+  ksRetryWhen,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -888,6 +891,49 @@ describe('ksPairwise', () => {
     expect(await stackOut(s)).toEqual([
       [1, 2],
       [2, 3],
+    ]);
+  });
+});
+
+describe('ksRepeat', () => {
+  it('should repeats an observable on completion', async () => {
+    const s = ksOf(42).pipe(ksRepeat(3));
+    expect(await stackOut(s)).toEqual([42, 42, 42]);
+  });
+});
+
+describe('ksRepeatWhen', () => {
+  it('should repeat when notified via returned notifier on complete', async () => {
+    let retried = 0;
+    const s = ksConcat(ksOf(1), ksOf(2)).pipe(
+      ksRepeatWhen(notifications => {
+        return notifications
+          .pipe(ksTakeWhile(() => retried <= 2))
+          .pipe(ksTap({ next: () => retried++ }));
+      }),
+    );
+    expect(await stackOut(s)).toEqual([1, 2, 1, 2, 1, 2, 1, 2]);
+  });
+});
+
+describe('ksRetryWhen', () => {
+  it('should retry when notified via returned notifier', async () => {
+    let retried = 0;
+    const s = ksConcat(ksOf(1), ksConcat(ksOf(2), ksOf(3)))
+      .pipe(ksMap(n => (n === 3 ? left(String(n)) : right(n))))
+      .pipe(
+        ksRetryWhen(errors => {
+          return errors.pipe(
+            ksMap(error => (++retried < 2 ? none : some(error))),
+          );
+        }),
+      );
+    expect(await stackOut(s)).toEqual([
+      right(1),
+      right(2),
+      right(1),
+      right(2),
+      left('3'),
     ]);
   });
 });

@@ -8,7 +8,10 @@ import {
   Unsubscribable,
   _lazy,
 } from './core';
-import { some, none, Option, isSome } from './option';
+import { some, none, Option, isSome, isNone } from './option';
+import { ksEmpty } from './factories';
+import { ksSubject, Subject } from './subject';
+import { Either, isRight, left } from './either';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -417,6 +420,198 @@ export const ksScan = <A, B>(
         },
         complete,
       });
+    });
+  };
+};
+
+/**
+ * Repeats an observable on completion.
+ */
+export const ksRepeat = <A>(count: number): Transformer<A, A> => {
+  if (count <= 0) return ksEmpty;
+  return stream => {
+    return stream.behaviour(observer => {
+      let soFar = 0;
+      let innerSub: Unsubscribable | null = null;
+      const subscribeForRepeat = () => {
+        let syncUnsub = false;
+        innerSub?.unsubscribe();
+        innerSub = stream.subscribe({
+          next: observer.next,
+          complete: () => {
+            if (++soFar < count) {
+              if (innerSub) {
+                innerSub.unsubscribe();
+                innerSub = null;
+                subscribeForRepeat();
+              } else {
+                syncUnsub = true;
+              }
+            } else {
+              observer.complete();
+            }
+          },
+        });
+        if (syncUnsub) {
+          innerSub.unsubscribe();
+          innerSub = null;
+          subscribeForRepeat();
+        }
+      };
+      subscribeForRepeat();
+      return { unsubscribe: () => innerSub?.unsubscribe() };
+    });
+  };
+};
+
+/**
+ * Repeats when notified via returned notifier on complete.
+ */
+export const ksRepeatWhen = <A>(
+  notifier: (notifications: Stream<void>) => Stream<void>,
+): Transformer<A, A> => {
+  return stream => {
+    return stream.behaviour(observer => {
+      let innerSub: Unsubscribable | null = null;
+      let notifierSub: Unsubscribable | null = null;
+      let syncResub = false;
+      let completions$: Subject<void> | null = null;
+      let isNotifierComplete = false;
+      let isMainComplete = false;
+
+      const checkComplete = () => {
+        if (isMainComplete && isNotifierComplete) {
+          observer.complete();
+          return true;
+        }
+        return false;
+      };
+
+      const getCompletionSubject = () => {
+        if (completions$ === null) {
+          completions$ = ksSubject();
+          notifierSub?.unsubscribe();
+          notifierSub = notifier(completions$).subscribe({
+            next: () => {
+              if (innerSub) {
+                subscribeForRepeatWhen();
+              } else {
+                syncResub = true;
+              }
+            },
+            complete: () => {
+              isNotifierComplete = true;
+              checkComplete();
+            },
+          });
+        }
+        return completions$;
+      };
+
+      const subscribeForRepeatWhen = () => {
+        isMainComplete = false;
+        innerSub?.unsubscribe();
+        innerSub = stream.subscribe({
+          next: observer.next,
+          complete: () => {
+            isMainComplete = true;
+            if (!checkComplete()) {
+              getCompletionSubject().next();
+            }
+          },
+        });
+        if (syncResub) {
+          innerSub.unsubscribe();
+          innerSub = null;
+          syncResub = false;
+          subscribeForRepeatWhen();
+        }
+      };
+
+      subscribeForRepeatWhen();
+
+      return {
+        unsubscribe: () => {
+          notifierSub?.unsubscribe();
+          innerSub?.unsubscribe();
+        },
+      };
+    });
+  };
+};
+
+/**
+ * Retry when notified via returned notifier.
+ */
+export const ksRetryWhen = <E, A>(
+  notifier: (errors: Stream<E>) => Stream<Option<E>>,
+): Transformer<Either<E, A>, Either<E, A>> => {
+  return stream => {
+    return stream.behaviour(observer => {
+      let innerSub: Unsubscribable | null = null;
+      let notifierSub: Unsubscribable | null = null;
+      let syncResub = false;
+      let errors$: Subject<E> | null = null;
+      let isMainComplete = false;
+      let hasError = false;
+
+      const subscribeForRetryWhen = () => {
+        isMainComplete = false;
+        hasError = false;
+        innerSub?.unsubscribe();
+        innerSub = stream.subscribe({
+          next: eitherValue => {
+            if (isRight(eitherValue)) {
+              observer.next(eitherValue);
+            } else {
+              hasError = true;
+              if (errors$ === null) {
+                errors$ = ksSubject();
+                notifierSub = notifier(errors$).subscribe({
+                  next: optionError => {
+                    if (isNone(optionError)) {
+                      if (innerSub) {
+                        subscribeForRetryWhen();
+                      } else {
+                        syncResub = true;
+                      }
+                    } else {
+                      observer.next(left(optionError.value));
+                      Promise.resolve().then(() => {
+                        if (isMainComplete) {
+                          observer.complete();
+                        }
+                      });
+                    }
+                  },
+                });
+              }
+              errors$.next(eitherValue.left);
+            }
+          },
+          complete: () => {
+            isMainComplete = true;
+            if (!hasError) {
+              observer.complete();
+            }
+          },
+        });
+        if (syncResub) {
+          innerSub.unsubscribe();
+          innerSub = null;
+          syncResub = false;
+          subscribeForRetryWhen();
+        }
+      };
+
+      subscribeForRetryWhen();
+
+      return {
+        unsubscribe: () => {
+          notifierSub?.unsubscribe();
+          innerSub?.unsubscribe();
+        },
+      };
     });
   };
 };
