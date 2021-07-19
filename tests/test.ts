@@ -1083,11 +1083,18 @@ describe('ksWithLatestFrom', () => {
 describe('ksAudit', () => {
   it('should ignore for time based on provided observable, then emit most recent value.', async () => {
     const s = ksInterval(50)
-      .pipe(ksAudit(n => ksInterval(n * 10)))
-      .pipe(ksTakeUntil(ksTimeout(2000)));
+      .pipe(ksTakeWhile(x => x < 40))
+      .pipe(ksAudit(n => ksInterval(n * 10)));
     expect(await stackOut(s)).toEqual([
-      0, 1, 2, 3, 4, 5, 7, 9, 11, 14, 17, 21, 26, 32,
+      0, 1, 2, 3, 4, 5, 7, 9, 11, 14, 17, 21, 26, 32, 39,
     ]);
+  });
+
+  it('should emit no values if durations are EMPTY', async () => {
+    const s = ksConcat(ksOf(1), ksOf(2))
+      .pipe(ksAudit(ksEmpty))
+      .pipe(ksTakeUntil(ksTimeout(1000)));
+    expect(await stackOut(s)).toEqual([]);
   });
 });
 
