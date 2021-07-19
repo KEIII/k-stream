@@ -88,6 +88,19 @@ describe('_lazy', () => {
     s.unsubscribe();
     expect(s.subscribe({})).toBe(noopUnsubscribe);
   });
+
+  it('should always teardown before starting the next cycle', () => {
+    const result: unknown[] = [];
+    const s = _lazy(
+      ksCold(() => {
+        return { unsubscribe: () => result.push('teardown') };
+      }),
+    );
+    s.subscribe({ next: value => result.push(value) });
+    s.subscribe({ next: value => result.push(value) }).unsubscribe();
+    s.subscribe({ next: value => result.push(value) });
+    expect(result).toEqual(['teardown', 'teardown', 'teardown']);
+  });
 });
 
 describe('ksNever', () => {
