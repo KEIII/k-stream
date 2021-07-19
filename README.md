@@ -36,6 +36,5 @@ const stream = ksShare<MouseEvent>(observer => {
 - Looks like RxJS syntax
 
 ## ToDo
-- withLatestFrom
 - audit
 - ...etc.

@@ -64,6 +64,7 @@ import {
   ksRepeat,
   ksRepeatWhen,
   ksRetryWhen,
+  ksWithLatestFrom,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -1046,6 +1047,34 @@ describe('ksRetryWhen', () => {
       right(1),
       right(2),
       left('3'),
+    ]);
+  });
+});
+
+describe('ksWithLatestFrom', () => {
+  it('should combine events from cold observables', async () => {
+    const a = ksCold<number>(({ next, complete }) => {
+      next(1);
+      next(2);
+      complete();
+      return noopUnsubscribe;
+    });
+    const b = ksCold<string>(({ next, complete }) => {
+      next('a');
+      next('b');
+      complete();
+      return noopUnsubscribe;
+    });
+    const c = ksCold<string>(({ next, complete }) => {
+      next('c');
+      next('d');
+      complete();
+      return noopUnsubscribe;
+    });
+    const s = a.pipe(ksWithLatestFrom(b)).pipe(ksWithLatestFrom(c));
+    expect(await stackOut(s)).toEqual([
+      [[1, 'b'], 'd'],
+      [[2, 'b'], 'd'],
     ]);
   });
 });

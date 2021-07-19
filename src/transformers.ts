@@ -615,3 +615,33 @@ export const ksRetryWhen = <E, A>(
     });
   };
 };
+
+/**
+ * Also provide the last value from another observable.
+ */
+export const ksWithLatestFrom = <A, B>(
+  other: Stream<B>,
+): Transformer<A, [A, B]> => {
+  return stream => {
+    return stream.behaviour(observer => {
+      let otherOptional: Option<B> = none;
+      const otherSub = other.subscribe({
+        next: value => (otherOptional = some(value)),
+      });
+      const mainSub = stream.subscribe({
+        next: value => {
+          if (isSome(otherOptional)) {
+            observer.next([value, otherOptional.value]);
+          }
+        },
+        complete: observer.complete,
+      });
+      return {
+        unsubscribe: () => {
+          otherSub.unsubscribe();
+          mainSub.unsubscribe();
+        },
+      };
+    });
+  };
+};
