@@ -82,6 +82,14 @@ const stackOut = <A>(observable: {
   });
 };
 
+describe('_lazy', () => {
+  it('should return noopUnsubscribe', () => {
+    const s = _lazy(ksOf(42));
+    s.unsubscribe();
+    expect(s.subscribe({})).toBe(noopUnsubscribe);
+  });
+});
+
 describe('ksNever', () => {
   it('should create a cold observable that never emits ', () => {
     let x;
