@@ -645,3 +645,61 @@ export const ksWithLatestFrom = <A, B>(
     });
   };
 };
+
+/**
+ * Ignore for time based on provided observable, then emit most recent value.
+ */
+export const ksAudit = <A>(
+  durationSelector: (value: A) => Stream<unknown>,
+): Transformer<A, A> => {
+  return stream => {
+    return stream.behaviour(observer => {
+      let lastValue: Option<A> = none;
+      let durationSubscriber: Unsubscribable | null = null;
+      let isComplete = false;
+
+      const endDuration = () => {
+        durationSubscriber?.unsubscribe();
+        durationSubscriber = null;
+        if (isSome(lastValue)) {
+          const value = lastValue;
+          lastValue = none;
+          observer.next(value.value);
+        }
+        if (isComplete) {
+          observer.complete();
+        }
+      };
+
+      const cleanupDuration = () => {
+        durationSubscriber = null;
+        isComplete && observer.complete();
+      };
+
+      const mainSub = stream.subscribe({
+        next: value => {
+          lastValue = some(value);
+          if (!durationSubscriber) {
+            durationSubscriber = durationSelector(value).subscribe({
+              next: endDuration,
+              complete: cleanupDuration,
+            });
+          }
+        },
+        complete: () => {
+          isComplete = true;
+          if (!isSome(lastValue) || !durationSubscriber) {
+            observer.complete();
+          }
+        },
+      });
+
+      return {
+        unsubscribe: () => {
+          durationSubscriber?.unsubscribe();
+          mainSub.unsubscribe();
+        },
+      };
+    });
+  };
+};

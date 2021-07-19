@@ -34,7 +34,3 @@ const stream = ksShare<MouseEvent>(observer => {
 - “Hot” streams stay “hot” after pipe usage (https://github.com/ReactiveX/rxjs/issues/1148)
 - Type safe, no “any”
 - Looks like RxJS syntax
-
-## ToDo
-- audit
-- ...etc.
