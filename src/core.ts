@@ -66,7 +66,7 @@ export const _lazy = <A>(observable: {
     },
     unsubscribe: () => {
       unsubscribed = true;
-      // NODE: delay call unsubscribe() to ensure subscription was fully initialized
+      // NOTE: delay call unsubscribe() to ensure subscription was fully initialized
       Promise.resolve().then(() => {
         subscription?.unsubscribe();
       });
