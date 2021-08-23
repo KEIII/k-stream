@@ -31,6 +31,7 @@ const stream = ksShare<MouseEvent>(observer => {
 ```
 
 ## Goals
+- Looks like RxJS syntax
 - “Hot” streams stay “hot” after pipe usage (https://github.com/ReactiveX/rxjs/issues/1148)
 - Type safe, no “any”
-- Looks like RxJS syntax
+- [Either](https://gcanti.github.io/fp-ts/modules/Either.ts.html) data type as an alternative to throwing exceptions
