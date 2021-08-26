@@ -189,7 +189,7 @@ describe('ksCold', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksCold);
     const { unsubscribe } = s.subscribe({});
-    expect(s.lastValue).toBeUndefined();
+    expect(s._unsafeLastValue).toBeUndefined();
     unsubscribe();
   });
 
@@ -275,7 +275,7 @@ describe('ksShare', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksShare);
     const { unsubscribe } = s.subscribe({});
-    expect(s.lastValue).toBeUndefined();
+    expect(s._unsafeLastValue).toBeUndefined();
     unsubscribe();
   });
 
@@ -333,7 +333,7 @@ describe('ksShareReplay', () => {
   it('should return last emitted value', () => {
     const s = ksOf(42, ksShareReplay);
     const { unsubscribe } = s.subscribe({});
-    expect(s.lastValue).toEqual(42);
+    expect(s._unsafeLastValue).toEqual(42);
     unsubscribe();
   });
 
@@ -1168,15 +1168,15 @@ describe('diamond problem (glitches)', () => {
     const view = jest.fn();
     const { unsubscribe } = displayName.subscribe({ next: view });
     expect(view.mock.calls.length).toBe(2);
-    expect(displayName.lastValue).toBe('John Doe');
+    expect(displayName._unsafeLastValue).toBe('John Doe');
 
     firstName.next('Joseph');
     expect(view.mock.calls.length).toBe(3);
-    expect(displayName.lastValue).toBe('Joseph Doe');
+    expect(displayName._unsafeLastValue).toBe('Joseph Doe');
 
     firstName.next('Jooooooooooooooseph');
     expect(view.mock.calls.length).toBe(5);
-    expect(displayName.lastValue).toBe('Jooooooooooooooseph');
+    expect(displayName._unsafeLastValue).toBe('Jooooooooooooooseph');
 
     expect(view.mock.calls.map(args => args[0])).toEqual([
       'John Doe',
