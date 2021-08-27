@@ -58,5 +58,8 @@ export const ksBehaviourSubject = <A>(
     get value() {
       return state.current;
     },
+    get _unsafeLastValue() {
+      return state.current;
+    },
   };
 };
