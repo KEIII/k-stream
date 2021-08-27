@@ -223,6 +223,17 @@ export const ksPeriodic = (
   );
 };
 
+let _inComputed = false;
+let _computedCallbacks = new Map<unknown, () => void>();
+export const computed = (f: () => void) => {
+  if (_inComputed) return;
+  _inComputed = true;
+  f();
+  for (const f of _computedCallbacks.values()) f();
+  _computedCallbacks.clear();
+  _inComputed = false;
+};
+
 /**
  * When any observable emits a value, emit the last emitted value from each.
  */
@@ -245,7 +256,12 @@ export const ksCombineLatest = <A, B>(
 
     const tryNext = () => {
       if (isSome(value_a) && isSome(value_b)) {
-        return next([value_a.value, value_b.value]);
+        const v: [A, B] = [value_a.value, value_b.value];
+        if (_inComputed) {
+          _computedCallbacks.set(unsubscribe, () => next(v));
+        } else {
+          next(v);
+        }
       }
     };
 

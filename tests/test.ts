@@ -66,6 +66,7 @@ import {
   ksRetryWhen,
   ksWithLatestFrom,
   ksAudit,
+  computed,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -1224,4 +1225,43 @@ describe('diamond problem (glitches)', () => {
       'h49',
     ]);
   });
+});
+
+test('computed', () => {
+  const a1 = ksBehaviourSubject(1);
+  const b1 = ksBehaviourSubject(2);
+
+  const a2 = ksBehaviourSubject(1);
+  const b2 = ksBehaviourSubject(2);
+
+  const r: any = [];
+  ksCombineLatest(ksCombineLatest(a1, b1), ksCombineLatest(a2, b2)).subscribe({
+    next: v => r.push(v),
+  });
+
+  computed(() => {
+    a1.next(2);
+    a2.next(2);
+    a1.next(3);
+    a1.next(4);
+    a2.next(3);
+    a2.next(4);
+    a1.next(5);
+    a2.next(5);
+    a2.next(10);
+    a1.next(10);
+    b1.next(20);
+    b2.next(20);
+  });
+
+  expect(r).toEqual([
+    [
+      [1, 2],
+      [1, 2],
+    ],
+    [
+      [10, 20],
+      [10, 20],
+    ],
+  ]);
 });
