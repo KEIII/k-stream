@@ -1247,9 +1247,11 @@ test('computed', () => {
     a2.next(3);
     a2.next(4);
     a1.next(5);
-    a2.next(5);
-    a2.next(10);
-    a1.next(10);
+    computed(() => {
+      a2.next(5);
+      a2.next(10);
+      a1.next(10);
+    });
     b1.next(20);
     b2.next(20);
   });

@@ -223,15 +223,19 @@ export const ksPeriodic = (
   );
 };
 
-let _inComputed = false;
+let _inComputed = 0;
 let _computedCallbacks = new Map<unknown, () => void>();
+/**
+ * Starts a transaction to avoids unnecessary recalculations.
+ */
 export const computed = (f: () => void) => {
-  if (_inComputed) return;
-  _inComputed = true;
+  _inComputed++;
   f();
-  for (const f of _computedCallbacks.values()) f();
-  _computedCallbacks.clear();
-  _inComputed = false;
+  if (_inComputed === 1) {
+    for (const f of _computedCallbacks.values()) f();
+    _computedCallbacks.clear();
+  }
+  _inComputed--;
 };
 
 /**
@@ -257,7 +261,7 @@ export const ksCombineLatest = <A, B>(
     const tryNext = () => {
       if (isSome(value_a) && isSome(value_b)) {
         const v: [A, B] = [value_a.value, value_b.value];
-        if (_inComputed) {
+        if (_inComputed > 0) {
           _computedCallbacks.set(unsubscribe, () => next(v));
         } else {
           next(v);
