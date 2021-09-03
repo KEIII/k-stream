@@ -153,6 +153,7 @@ const createShareStream = <A>(
 
   const subscribe: Subscriber<A> = observer => {
     if (isCompleted) {
+      console.warn('Logic error: Subscribing to completed stream');
       return noopUnsubscribe;
     }
 
