@@ -25,28 +25,14 @@ export const ksChangeBehaviour = <A>(
  * Apply projection with each value from source.
  */
 export const ksMap = <A, B>(project: (value: A) => B): Transformer<A, B> => {
-  return stream => {
-    return stream.behaviour(({ next, complete }) => {
-      return stream.subscribe({
-        next: (value: A) => next(project(value)),
-        complete,
-      });
-    });
-  };
+  return stream => stream.pipe(ksFilterMap(x => some(project(x))));
 };
 
 /**
  * Map emissions to constant value.
  */
 export const ksMapTo = <A, B>(value: B): Transformer<A, B> => {
-  return stream => {
-    return stream.behaviour(({ next, complete }) => {
-      return stream.subscribe({
-        next: () => next(value),
-        complete,
-      });
-    });
-  };
+  return stream => stream.pipe(ksMap(() => value));
 };
 
 /**
@@ -208,24 +194,8 @@ export const ksTakeUntil = <A>(
  */
 export const ksTake = <A>(count: number): Transformer<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
-      let counter = 0;
-
-      const _stream = _lazy(stream);
-
-      const onNext: Next<A> = value => {
-        next(value);
-        if (++counter >= count) {
-          _stream.unsubscribe();
-          complete();
-        }
-      };
-
-      return _stream.subscribe({
-        next: onNext,
-        complete,
-      });
-    });
+    let counter = 0;
+    return stream.pipe(ksTakeWhile(() => ++counter <= count));
   };
 };
 
