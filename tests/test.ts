@@ -609,6 +609,11 @@ describe('ksTakeUntil', () => {
 });
 
 describe('ksTake', () => {
+  it('should be empty', () => {
+    expect(ksTake(-1)).toBe(ksEmpty);
+    expect(ksTake(0)).toBe(ksEmpty);
+  });
+
   it('should complete main stream before notifier emits', async () => {
     const random = Math.random();
     const s = ksOf(random).pipe(ksTake(1));
@@ -1102,7 +1107,7 @@ describe('performance', () => {
   it('maximum call stack size exceeded', () => {
     const m = ksMap((x: number) => x + 1);
     let s = ksOf(0);
-    const max = 2_576;
+    const max = 2_521;
     for (let i = 0; i < max; i++) {
       s = s.pipe(m);
     }

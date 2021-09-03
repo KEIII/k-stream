@@ -193,9 +193,29 @@ export const ksTakeUntil = <A>(
  * Emit provided number of values before completing.
  */
 export const ksTake = <A>(count: number): Transformer<A, A> => {
+  if (count <= 0) return ksEmpty;
   return stream => {
-    let counter = 0;
-    return stream.pipe(ksTakeWhile(() => ++counter <= count));
+    const _stream = _lazy(stream);
+    return stream.behaviour(({ next, complete }) => {
+      let seen = 0;
+
+      const onComplete: Complete = () => {
+        complete();
+        _stream.unsubscribe();
+      };
+
+      return stream.subscribe({
+        next: value => {
+          if (++seen <= count) {
+            next(value);
+            if (count <= seen) {
+              onComplete();
+            }
+          }
+        },
+        complete: onComplete,
+      });
+    });
   };
 };
 
@@ -203,10 +223,12 @@ export const ksTake = <A>(count: number): Transformer<A, A> => {
  * Emit values until provided expression is false.
  */
 export const ksTakeWhile = <A>(
-  predicate: (value: A) => boolean,
+  predicate: (value: A, index: number) => boolean,
 ): Transformer<A, A> => {
   return stream => {
     return stream.behaviour(({ next, complete }) => {
+      let index = 0;
+
       const _stream = _lazy(stream);
 
       const onComplete: Complete = () => {
@@ -214,16 +236,14 @@ export const ksTakeWhile = <A>(
         _stream.unsubscribe();
       };
 
-      const onNext: Next<A> = value => {
-        if (predicate(value)) {
-          next(value);
-        } else {
-          onComplete();
-        }
-      };
-
-      return _stream.subscribe({
-        next: onNext,
+      return stream.subscribe({
+        next: value => {
+          if (predicate(value, index++)) {
+            next(value);
+          } else {
+            onComplete();
+          }
+        },
         complete: onComplete,
       });
     });

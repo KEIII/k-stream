@@ -13,17 +13,17 @@ import { Either, left, right } from './either';
 /**
  * Observable that emits no items and does not terminate.
  */
-export const ksNever: Stream<never> = ksCold(() => noopUnsubscribe);
+export const ksNever = ksCold<never>(() => noopUnsubscribe);
+
+const _ksEmpty = ksCold<never>(({ complete }) => {
+  complete();
+  return noopUnsubscribe;
+});
 
 /**
  * Observable that immediately completes.
  */
-export const ksEmpty = <A>(): Stream<A> => {
-  return ksCold(({ complete }) => {
-    complete();
-    return noopUnsubscribe;
-  });
-};
+export const ksEmpty = (): Stream<never> => _ksEmpty;
 
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
