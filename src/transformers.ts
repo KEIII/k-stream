@@ -195,20 +195,20 @@ export const ksTakeUntil = <A>(
 export const ksTake = <A>(count: number): Transformer<A, A> => {
   if (count <= 0) return ksEmpty;
   return stream => {
-    const _stream = _lazy(stream);
     return stream.behaviour(({ next, complete }) => {
+      const _stream = _lazy(stream);
       let seen = 0;
 
       const onComplete: Complete = () => {
-        complete();
         _stream.unsubscribe();
+        complete();
       };
 
-      return stream.subscribe({
+      return _stream.subscribe({
         next: value => {
           if (++seen <= count) {
             next(value);
-            if (count <= seen) {
+            if (seen >= count) {
               onComplete();
             }
           }
@@ -227,16 +227,15 @@ export const ksTakeWhile = <A>(
 ): Transformer<A, A> => {
   return stream => {
     return stream.behaviour(({ next, complete }) => {
+      const _stream = _lazy(stream);
       let index = 0;
 
-      const _stream = _lazy(stream);
-
       const onComplete: Complete = () => {
-        complete();
         _stream.unsubscribe();
+        complete();
       };
 
-      return stream.subscribe({
+      return _stream.subscribe({
         next: value => {
           if (predicate(value, index++)) {
             next(value);
