@@ -30,7 +30,7 @@ export type Observable<A> = {
 export type Stream<A> = Observable<A> & {
   readonly pipe: Pipe<A>;
   readonly behaviour: KsBehaviour;
-  readonly _unsafeLastValue: A | undefined;
+  readonly _unsafeLastValue: () => A | undefined;
 };
 
 export type KsBehaviour = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
@@ -113,7 +113,7 @@ export const ksCold: KsBehaviour = <A>(
     subscribe,
     pipe: transformer => transformer(stream),
     behaviour: ksCold,
-    _unsafeLastValue: undefined,
+    _unsafeLastValue: () => undefined,
   };
 
   return stream;
@@ -194,7 +194,7 @@ const createShareStream = <A>(
     subscribe,
     pipe: transformer => transformer(stream),
     behaviour: replay ? ksShareReplay : ksShare,
-    get _unsafeLastValue() {
+    _unsafeLastValue: () => {
       return isSome(lastValue) ? lastValue.value : undefined;
     },
   };

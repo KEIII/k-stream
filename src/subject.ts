@@ -8,7 +8,7 @@ import {
 } from './core';
 
 export type Subject<A> = Stream<A> & {
-  readonly next: (value: A) => void;
+  readonly next: Next<A>;
   readonly complete: Complete;
 };
 
@@ -43,8 +43,6 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
     behaviour: stream.behaviour,
     next,
     complete,
-    get _unsafeLastValue() {
-      return stream._unsafeLastValue;
-    },
+    _unsafeLastValue: stream._unsafeLastValue,
   };
 };

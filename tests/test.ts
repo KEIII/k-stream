@@ -189,7 +189,7 @@ describe('ksCold', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksCold);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue).toBeUndefined();
+    expect(s._unsafeLastValue()).toBeUndefined();
     unsubscribe();
   });
 
@@ -275,7 +275,7 @@ describe('ksShare', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksShare);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue).toBeUndefined();
+    expect(s._unsafeLastValue()).toBeUndefined();
     unsubscribe();
   });
 
@@ -333,7 +333,7 @@ describe('ksShareReplay', () => {
   it('should return last emitted value', () => {
     const s = ksOf(42, ksShareReplay);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue).toEqual(42);
+    expect(s._unsafeLastValue()).toEqual(42);
     unsubscribe();
   });
 
@@ -697,8 +697,8 @@ describe('ksBehaviourSubject', () => {
   it('should emit last value after subscribe', async () => {
     const r = { v: 0, c: false, emitted: false };
     const s = ksBehaviourSubject(0);
-    s.value++;
-    s.value++;
+    s.next(s.getValue() + 1);
+    s.next(s.getValue() + 1);
     s.complete();
     s.subscribe({
       next: v => (r.v = v),
@@ -721,7 +721,7 @@ describe('ksBehaviourSubject', () => {
     s.next(0);
     const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
-      s.value += i;
+      s.next(s.getValue() + i);
     }
     const b = stackOut(s);
     s.complete();
@@ -734,11 +734,11 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(0);
     let count = 0;
     const next = () => count++;
-    s.value++;
+    s.next(s.getValue() + 1);
     s.subscribe({ next }).unsubscribe();
-    s.value++;
+    s.next(s.getValue() + 1);
     s.subscribe({ next }).unsubscribe();
-    s.value++;
+    s.next(s.getValue() + 1);
     expect(count).toEqual(2);
   });
 
@@ -746,8 +746,8 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(1);
     const a = stackOut(s);
     s.complete();
-    s.value = 2;
-    expect(s.value).toBe(1);
+    s.next(2);
+    expect(s.getValue()).toBe(1);
     expect(await a).toEqual([1]);
   });
 
@@ -763,8 +763,8 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(0);
     const a = stackOut(s);
     const b = stackOut(s);
-    s.value++;
-    s.value++;
+    s.next(s.getValue() + 1);
+    s.next(s.getValue() + 1);
     s.complete();
     expect(await a).toEqual(await b);
   });
@@ -1183,15 +1183,15 @@ describe('diamond problem (glitches)', () => {
     const view = jest.fn();
     const { unsubscribe } = displayName.subscribe({ next: view });
     expect(view.mock.calls.length).toBe(2);
-    expect(displayName._unsafeLastValue).toBe('John Doe');
+    expect(displayName._unsafeLastValue()).toBe('John Doe');
 
     firstName.next('Joseph');
     expect(view.mock.calls.length).toBe(3);
-    expect(displayName._unsafeLastValue).toBe('Joseph Doe');
+    expect(displayName._unsafeLastValue()).toBe('Joseph Doe');
 
     firstName.next('Jooooooooooooooseph');
     expect(view.mock.calls.length).toBe(5);
-    expect(displayName._unsafeLastValue).toBe('Jooooooooooooooseph');
+    expect(displayName._unsafeLastValue()).toBe('Jooooooooooooooseph');
 
     expect(view.mock.calls.map(args => args[0])).toEqual([
       'John Doe',

@@ -8,7 +8,7 @@ import {
 } from './core';
 
 export type BehaviourSubject<A> = Stream<A> & {
-  value: A;
+  readonly getValue: () => A;
   readonly next: Next<A>;
   readonly complete: Complete;
 };
@@ -36,6 +36,8 @@ export const ksBehaviourSubject = <A>(
     subjectObserver?.next(value);
   };
 
+  const getValue = () => state.current;
+
   return {
     subscribe: observer => {
       if (state.isCompleted) {
@@ -52,14 +54,7 @@ export const ksBehaviourSubject = <A>(
       subjectObserver?.complete();
     },
     next,
-    set value(value: A) {
-      next(value);
-    },
-    get value() {
-      return state.current;
-    },
-    get _unsafeLastValue() {
-      return state.current;
-    },
+    getValue,
+    _unsafeLastValue: getValue,
   };
 };
