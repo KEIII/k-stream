@@ -43,5 +43,8 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
     behaviour: stream.behaviour,
     next,
     complete,
+    get _unsafeLastValue() {
+      return stream._unsafeLastValue;
+    },
   };
 };

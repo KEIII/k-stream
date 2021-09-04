@@ -30,7 +30,7 @@ export type Observable<A> = {
 export type Stream<A> = Observable<A> & {
   readonly pipe: Pipe<A>;
   readonly behaviour: KsBehaviour;
-  readonly _unsafeLastValue?: A;
+  readonly _unsafeLastValue: A | undefined;
 };
 
 export type KsBehaviour = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
