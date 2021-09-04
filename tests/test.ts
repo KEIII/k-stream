@@ -66,6 +66,7 @@ import {
   ksRetryWhen,
   ksWithLatestFrom,
   ksAudit,
+  noop,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -816,7 +817,7 @@ describe('ksSubject', () => {
     const s = ksSubject();
     s.complete();
     const sub1 = s.subscribe({});
-    const sub2 = s.subscribe({ next: () => void 0, complete: () => void 0 });
+    const sub2 = s.subscribe({ next: noop, complete: noop });
     s.next(42);
     expect(await stackOut(s)).toEqual([]);
     sub1.unsubscribe();

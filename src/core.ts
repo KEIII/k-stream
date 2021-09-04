@@ -35,7 +35,9 @@ export type Stream<A> = Observable<A> & {
 
 export type KsBehaviour = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
 
-export const noopUnsubscribe: Unsubscribable = { unsubscribe: () => void 0 };
+export const noop = () => void 0;
+
+export const noopUnsubscribe: Unsubscribable = { unsubscribe: noop };
 
 export type Scheduler = {
   schedule: (handler: () => void, ms: number) => Unsubscribable;
@@ -113,7 +115,7 @@ export const ksCold: KsBehaviour = <A>(
     subscribe,
     pipe: transformer => transformer(stream),
     behaviour: ksCold,
-    _unsafeLastValue: () => undefined,
+    _unsafeLastValue: noop,
   };
 
   return stream;
