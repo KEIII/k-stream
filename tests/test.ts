@@ -362,6 +362,16 @@ describe('ksShareReplay', () => {
     stream.subscribe({ next }).unsubscribe(); // counter = 2
     expect(result).toBe(2);
   });
+
+  it('should replay value on completed stream', async () => {
+    const s = ksShareReplay(o => {
+      o.next(1);
+      o.complete();
+      return noopUnsubscribe;
+    });
+    s.subscribe({});
+    expect(await stackOut(s)).toEqual([1]);
+  });
 });
 
 describe('ksTimeout', () => {

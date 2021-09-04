@@ -152,13 +152,13 @@ const createShareStream = <A>(
   };
 
   const subscribe: Subscriber<A> = observer => {
-    if (isCompleted) {
-      console.warn('Logic error: Subscribing to completed stream');
-      return noopUnsubscribe;
-    }
-
     if (replay && isSome(lastValue)) {
       observer.next?.(lastValue.value);
+      if (isCompleted) observer.complete?.();
+    }
+
+    if (isCompleted) {
+      return noopUnsubscribe;
     }
 
     const subscribeId = Symbol();
