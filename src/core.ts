@@ -113,6 +113,7 @@ export const ksCold: KsBehaviour = <A>(
     subscribe,
     pipe: transformer => transformer(stream),
     behaviour: ksCold,
+    _unsafeLastValue: undefined,
   };
 
   return stream;
