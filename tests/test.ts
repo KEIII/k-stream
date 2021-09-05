@@ -696,6 +696,14 @@ it('should works like RxJS (in some cases ;)', async () => {
 });
 
 describe('ksBehaviourSubject', () => {
+  it('should test empty observer', () => {
+    const s = ksBehaviourSubject(1);
+    const sub = s.subscribe({});
+    s.next(2);
+    s.complete();
+    sub.unsubscribe();
+  });
+
   it('should emit last value after subscribe', async () => {
     const r = { v: 0, c: false, emitted: false };
     const s = ksBehaviourSubject(0);
