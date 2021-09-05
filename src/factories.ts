@@ -5,6 +5,7 @@ import {
   Observable,
   Stream,
   noopUnsubscribe,
+  Unsubscribable,
 } from './core';
 import { ksMap } from './transformers';
 import { isSome, none, Option, some } from './option';
@@ -196,7 +197,7 @@ export const ksInterval = (
 ): Stream<number> => {
   return behaviour(({ next }) => {
     let count = 0;
-    let sub = noopUnsubscribe;
+    let sub: Unsubscribable | undefined;
     const tick = () => {
       sub = scheduler.schedule(handler, ms);
     };
@@ -205,7 +206,13 @@ export const ksInterval = (
       tick();
     };
     tick();
-    return { unsubscribe: () => sub.unsubscribe() };
+    return {
+      unsubscribe: () => {
+        Promise.resolve().then(() => {
+          sub?.unsubscribe();
+        });
+      },
+    };
   });
 };
 

@@ -661,8 +661,11 @@ export const ksAudit = <A>(
       };
 
       const cleanupDuration = () => {
+        durationSubscriber?.unsubscribe();
         durationSubscriber = null;
-        isComplete && observer.complete();
+        if (isComplete) {
+          observer.complete();
+        }
       };
 
       const mainSub = stream.subscribe({
