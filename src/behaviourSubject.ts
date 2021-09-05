@@ -1,60 +1,60 @@
-import {
-  Complete,
-  ksShareReplay,
-  Next,
-  noopUnsubscribe,
-  Observer,
-  Stream,
-} from './core';
+import { Complete, ksShareReplay, Next, Observer } from './core';
+import { Subject } from './subject';
 
-export type BehaviourSubject<A> = Stream<A> & {
+export type BehaviourSubject<A> = Subject<A> & {
   readonly getValue: () => A;
-  readonly next: Next<A>;
-  readonly complete: Complete;
 };
 
 export const ksBehaviourSubject = <A>(
   initValue: A,
   behaviour = ksShareReplay,
 ): BehaviourSubject<A> => {
-  const state = { isCompleted: false, current: initValue };
-  let subjectObserver: Required<Observer<A>> | null = null;
-
-  const stream = behaviour<A>(observer => {
-    subjectObserver = observer;
-    subjectObserver.next(state.current);
-    return { unsubscribe: () => (subjectObserver = null) };
-  });
+  let isCompleted = false;
+  let currentValue = initValue;
+  const observersMap = new Map<symbol, Observer<A>>();
 
   const next: Next<A> = value => {
-    if (state.isCompleted) {
+    if (isCompleted) {
       return console.warn(
         'Logic error: Ignore call `next` on completed stream.',
       );
     }
-    state.current = value;
-    subjectObserver?.next(value);
+    currentValue = value;
+    observersMap.forEach(observer => observer.next?.(value));
   };
 
-  const getValue = () => state.current;
+  const complete: Complete = () => {
+    if (isCompleted) {
+      return console.warn('Logic error: attempt to execute twice');
+    }
+    isCompleted = true;
+    observersMap.forEach(observer => observer.complete?.());
+  };
 
-  return {
+  const getValue = () => currentValue;
+
+  const self: BehaviourSubject<A> = {
     subscribe: observer => {
-      if (state.isCompleted) {
-        observer.next?.(state.current);
+      const subscribeId = Symbol();
+      observer.next?.(currentValue);
+      if (isCompleted) {
         observer.complete?.();
-        return noopUnsubscribe;
+      } else {
+        observersMap.set(subscribeId, observer);
       }
-      return stream.subscribe(observer);
+      return {
+        unsubscribe: () => {
+          observersMap.delete(subscribeId);
+        },
+      };
     },
-    pipe: stream.pipe,
-    behaviour: stream.behaviour,
-    complete: () => {
-      state.isCompleted = true;
-      subjectObserver?.complete();
-    },
+    pipe: transformer => transformer(self),
+    behaviour,
+    complete,
     next,
     getValue,
     _unsafeLastValue: getValue,
   };
+
+  return self;
 };

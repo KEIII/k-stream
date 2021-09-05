@@ -111,14 +111,14 @@ export const ksCold: KsBehaviour = <A>(
     };
   };
 
-  const stream: Stream<A> = {
+  const self: Stream<A> = {
     subscribe,
-    pipe: transformer => transformer(stream),
+    pipe: transformer => transformer(self),
     behaviour: ksCold,
     _unsafeLastValue: noop,
   };
 
-  return stream;
+  return self;
 };
 
 const createShareStream = <A>(
@@ -192,16 +192,16 @@ const createShareStream = <A>(
     return { unsubscribe };
   };
 
-  const stream: Stream<A> = {
+  const self: Stream<A> = {
     subscribe,
-    pipe: transformer => transformer(stream),
+    pipe: transformer => transformer(self),
     behaviour: replay ? ksShareReplay : ksShare,
     _unsafeLastValue: () => {
       return isSome(lastValue) ? lastValue.value : undefined;
     },
   };
 
-  return stream;
+  return self;
 };
 
 /**

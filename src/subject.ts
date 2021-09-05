@@ -6,6 +6,7 @@ import {
   ksShare,
   noopUnsubscribe,
 } from './core';
+import { isSome, none, Option, some } from './option';
 
 export type Subject<A> = Stream<A> & {
   readonly next: Next<A>;
@@ -14,35 +15,51 @@ export type Subject<A> = Stream<A> & {
 
 export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
   let isCompleted = false;
-  let subjectObserver: Required<Observer<A>> | null = null;
+  let lastValue: Option<A> = none;
+  const observersMap = new Map<symbol, Observer<A>>();
 
   const next: Next<A> = value => {
-    if (isCompleted) return;
-    subjectObserver?.next(value);
+    if (isCompleted) {
+      return console.warn(
+        'Logic error: Ignore call `next` on completed stream.',
+      );
+    }
+    lastValue = some(value);
+    observersMap.forEach(observer => observer.next?.(value));
   };
 
   const complete: Complete = () => {
+    if (isCompleted) {
+      return console.warn('Logic error: attempt to execute twice');
+    }
     isCompleted = true;
-    subjectObserver?.complete();
+    observersMap.forEach(observer => observer.complete?.());
   };
 
-  const stream = behaviour<A>(observer => {
-    subjectObserver = observer;
-    return noopUnsubscribe;
-  });
-
-  return {
+  const self: Subject<A> = {
     subscribe: observer => {
       if (isCompleted) {
-        observer.complete?.();
+        console.warn('Logic error: Ignore call `next` on completed stream.');
         return noopUnsubscribe;
       }
-      return stream.subscribe(observer);
+      const subscribeId = Symbol();
+      if (!isCompleted) {
+        observersMap.set(subscribeId, observer);
+      }
+      return {
+        unsubscribe: () => {
+          observersMap.delete(subscribeId);
+        },
+      };
     },
-    pipe: stream.pipe,
-    behaviour: stream.behaviour,
-    next,
+    pipe: transformer => transformer(self),
+    behaviour,
     complete,
-    _unsafeLastValue: stream._unsafeLastValue,
+    next,
+    _unsafeLastValue: () => {
+      return isSome(lastValue) ? lastValue.value : undefined;
+    },
   };
+
+  return self;
 };

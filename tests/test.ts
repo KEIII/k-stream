@@ -66,7 +66,6 @@ import {
   ksRetryWhen,
   ksWithLatestFrom,
   ksAudit,
-  noop,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -810,18 +809,6 @@ describe('ksSubject', () => {
     s.complete();
     expect(await a).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(await b).toEqual([]);
-    expect(await stackOut(s)).toEqual([]);
-  });
-
-  it('should test subscribe after complete', async () => {
-    const s = ksSubject();
-    s.complete();
-    const sub1 = s.subscribe({});
-    const sub2 = s.subscribe({ next: noop, complete: noop });
-    s.next(42);
-    expect(await stackOut(s)).toEqual([]);
-    sub1.unsubscribe();
-    sub2.unsubscribe();
   });
 
   it('should stop emitting values after unsubscribe', async () => {
@@ -1183,11 +1170,11 @@ describe('diamond problem (glitches)', () => {
 
     const view = jest.fn();
     const { unsubscribe } = displayName.subscribe({ next: view });
-    expect(view.mock.calls.length).toBe(2);
+    expect(view.mock.calls.length).toBe(1);
     expect(displayName._unsafeLastValue()).toBe('John Doe');
 
     firstName.next('Joseph');
-    expect(view.mock.calls.length).toBe(3);
+    expect(view.mock.calls.length).toBe(2);
     expect(displayName._unsafeLastValue()).toBe('Joseph Doe');
 
     firstName.next('Jooooooooooooooseph');
@@ -1196,8 +1183,8 @@ describe('diamond problem (glitches)', () => {
 
     expect(view.mock.calls.map(args => args[0])).toEqual([
       'John Doe',
-      'John Doe',
       'Joseph Doe',
+      'Jooooooooooooooseph Doe',
       'Jooooooooooooooseph',
       'Jooooooooooooooseph',
     ]);
