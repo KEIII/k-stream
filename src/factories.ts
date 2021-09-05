@@ -198,8 +198,13 @@ export const ksInterval = (
   return behaviour(({ next }) => {
     let count = 0;
     let sub: Unsubscribable | undefined;
+    let isUnsubscribed = false;
     const tick = () => {
       sub = scheduler.schedule(handler, ms);
+      // check if `unsubscribed` was changed inside `handler()`
+      if (isUnsubscribed) {
+        sub.unsubscribe();
+      }
     };
     const handler = () => {
       next(count++);
@@ -208,9 +213,8 @@ export const ksInterval = (
     tick();
     return {
       unsubscribe: () => {
-        Promise.resolve().then(() => {
-          sub?.unsubscribe();
-        });
+        isUnsubscribed = true;
+        sub?.unsubscribe();
       },
     };
   });

@@ -57,21 +57,22 @@ export const asyncScheduler: Scheduler = {
 export const _lazy = <A>(observable: {
   subscribe: (observer: A) => Unsubscribable;
 }) => {
-  let unsubscribed = false;
+  let isUnsubscribed = false;
   let subscription: Unsubscribable | undefined;
   return {
     subscribe: (observer: A): Unsubscribable => {
-      if (unsubscribed) return noopUnsubscribe;
+      if (isUnsubscribed) return noopUnsubscribe;
       subscription?.unsubscribe();
       subscription = observable.subscribe(observer);
+      // check again if `unsubscribed` was changed inside `observer()`
+      if (isUnsubscribed) {
+        subscription.unsubscribe();
+      }
       return subscription;
     },
     unsubscribe: () => {
-      unsubscribed = true;
-      // NOTE: delay call unsubscribe() to ensure subscription was fully initialized
-      Promise.resolve().then(() => {
-        subscription?.unsubscribe();
-      });
+      isUnsubscribed = true;
+      subscription?.unsubscribe();
     },
   };
 };
