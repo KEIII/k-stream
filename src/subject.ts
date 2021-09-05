@@ -43,9 +43,7 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
         return noopUnsubscribe;
       }
       const subscribeId = Symbol();
-      if (!isCompleted) {
-        observersMap.set(subscribeId, observer);
-      }
+      observersMap.set(subscribeId, observer);
       return {
         unsubscribe: () => {
           observersMap.delete(subscribeId);

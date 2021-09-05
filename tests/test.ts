@@ -746,6 +746,7 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(1);
     const a = stackOut(s);
     s.complete();
+    s.complete();
     s.next(2);
     expect(s.getValue()).toBe(1);
     expect(await a).toEqual([1]);
@@ -825,6 +826,16 @@ describe('ksSubject', () => {
     a.next(0);
     expect(x).toBe(1);
     unsubscribe();
+  });
+
+  it('should ignore next value on completed subject', async () => {
+    const s = ksSubject();
+    s.next(42);
+    s.complete();
+    s.complete();
+    s.next(43);
+    expect(s.subscribe({})).toBe(noopUnsubscribe);
+    expect(s._unsafeLastValue()).toBe(42);
   });
 });
 
