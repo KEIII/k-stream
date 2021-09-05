@@ -67,6 +67,7 @@ import {
   ksWithLatestFrom,
   ksAudit,
   Stream,
+  Either,
 } from '../src';
 
 const stackOut = <A>(observable: {
@@ -1064,6 +1065,49 @@ describe('ksRetryWhen', () => {
       right(2),
       left('3'),
     ]);
+  });
+
+  it('should skip errors sync', async () => {
+    const attempts = [
+      [left(0)],
+      [left(1), right(2), left(3), right(4)],
+      [right(5)],
+    ];
+
+    const s = ksCold<Either<number, number>>(o => {
+      attempts.shift()?.forEach(o.next);
+      o.complete();
+      return noopUnsubscribe;
+    }).pipe(ksRetryWhen(errors => errors.pipe(ksMapTo(none))));
+
+    expect(await stackOut(s)).toEqual([right(2), right(4)]);
+  });
+
+  it('should skip errors async', async () => {
+    const attempts = [
+      [left(0)],
+      [left(1), right(2), left(3), right(4)],
+      [right(5)],
+    ];
+
+    const s = ksCold<Either<number, number>>(o => {
+      const a = (attempts.shift() ?? []).map(x => {
+        return new Promise<CallableFunction>(resolve => {
+          setTimeout(() => resolve(() => o.next(x)), 100);
+        });
+      });
+      a.push(
+        new Promise<CallableFunction>(resolve => {
+          setTimeout(() => resolve(() => o.complete()), 100);
+        }),
+      );
+      (async () => {
+        for await (const f of a) f();
+      })();
+      return noopUnsubscribe;
+    }).pipe(ksRetryWhen(errors => errors.pipe(ksMapTo(none))));
+
+    expect(await stackOut(s)).toEqual([right(5)]);
   });
 });
 

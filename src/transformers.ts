@@ -542,20 +542,22 @@ export const ksRetryWhen = <E, A>(
       let syncResub = false;
       let errors$: Subject<E> | null = null;
       let isMainComplete = false;
-      let hasError = false;
+      let isLockComplete = false;
 
       const subscribeForRetryWhen = () => {
         isMainComplete = false;
-        hasError = false;
+        isLockComplete = false;
         innerSub?.unsubscribe();
         innerSub = stream.subscribe({
           next: eitherValue => {
             if (isRight(eitherValue)) {
+              isLockComplete = false;
               observer.next(eitherValue);
             } else {
-              hasError = true;
+              isLockComplete = true;
               if (errors$ === null) {
                 errors$ = ksSubject();
+                notifierSub?.unsubscribe();
                 notifierSub = notifier(errors$).subscribe({
                   next: optionError => {
                     if (isNone(optionError)) {
@@ -565,12 +567,11 @@ export const ksRetryWhen = <E, A>(
                         syncResub = true;
                       }
                     } else {
+                      isLockComplete = false;
                       observer.next(left(optionError.value));
-                      Promise.resolve().then(() => {
-                        if (isMainComplete) {
-                          observer.complete();
-                        }
-                      });
+                      if (isMainComplete) {
+                        observer.complete();
+                      }
                     }
                   },
                 });
@@ -580,7 +581,7 @@ export const ksRetryWhen = <E, A>(
           },
           complete: () => {
             isMainComplete = true;
-            if (!hasError) {
+            if (!isLockComplete) {
               observer.complete();
             }
           },
