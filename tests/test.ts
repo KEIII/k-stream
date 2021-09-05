@@ -814,6 +814,18 @@ describe('ksSubject', () => {
     expect(await b).toEqual([]);
   });
 
+  it('should test initial last value', () => {
+    expect(ksSubject()._unsafeLastValue()).toBeUndefined();
+  });
+
+  it('should test empty observer', () => {
+    const s = ksSubject();
+    const sub = s.subscribe({});
+    s.next(1);
+    s.complete();
+    sub.unsubscribe();
+  });
+
   it('should stop emitting values after unsubscribe', async () => {
     const a = ksSubject<number>();
     const s = a.pipe(
