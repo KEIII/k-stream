@@ -126,8 +126,8 @@ describe('ksFromPromise', () => {
       ksFromPromise<number, unknown>(Promise.resolve(random)),
     );
     expect(out).toEqual([right(random)]);
-    expect(isRight(out[0])).toBeTruthy();
-    expect(isLeft(out[0])).toBeFalsy();
+    expect(isRight(out[0]!)).toBeTruthy();
+    expect(isLeft(out[0]!)).toBeFalsy();
   });
 
   it('should create stream from promise and reject', async () => {
@@ -394,7 +394,7 @@ describe('ksMap', () => {
   it('should apply projection with each value from source', async () => {
     const random = Math.random();
     const s = ksOf(random, ksShare).pipe(ksMap(n => () => n));
-    expect((await stackOut(s))[0]()).toBe(random);
+    expect((await stackOut(s))[0]!()).toBe(random);
   });
 });
 
@@ -1291,7 +1291,7 @@ describe('diamond problem (glitches)', () => {
   test('alphabet right way', async () => {
     const alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const a = ksPeriodic(1).pipe(ksTake(alphabet.length)); // 0-----1-----2-----3-----4----
-    const d = a.pipe(ksMap(i => alphabet[i].concat(String(i * i)))); // a0----b1----c4----d9----e16--
+    const d = a.pipe(ksMap(i => alphabet[i]!.concat(String(i * i)))); // a0----b1----c4----d9----e16--
     expect(await stackOut(d)).toEqual([
       'a0',
       'b1',
