@@ -2,6 +2,18 @@
   "name": "@keiii/k-stream",
   "version": "0.0.42",
   "description": "K-Stream is a functional reactive stream library for TypeScript",
+  "keywords": [
+    "observables",
+    "observable",
+    "reactive",
+    "reactive programming",
+    "reactive streams",
+    "stream",
+    "streams",
+    "monad",
+    "monadic",
+    "functional"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
