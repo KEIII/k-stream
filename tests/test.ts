@@ -84,7 +84,7 @@ const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
   });
 };
 
-describe('_lazy', () => {
+describe('_unsubscribableObservable', () => {
   it('should return noopUnsubscribe', () => {
     const s = _unsubscribableObservable(ksOf(42));
     s.unsubscribe();
