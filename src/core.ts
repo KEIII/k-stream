@@ -19,9 +19,14 @@ export type SubscriberRequired<A> = (
   observer: Required<Observer<A>>,
 ) => Unsubscribable;
 
-export type Transformer<A, B> = (stream: Stream<A>) => Stream<B>;
+/**
+ * A Pipeable Operator is a function that takes an Stream as its input
+ * and returns another Stream.
+ * It must be a pure operation: the previous Stream stays unmodified.
+ */
+export type PipeableOperator<A, B> = (stream: Stream<A>) => Stream<B>;
 
-export type Pipe<A> = <B>(transformer: Transformer<A, B>) => Stream<B>;
+export type Pipe<A> = <B>(operator: PipeableOperator<A, B>) => Stream<B>;
 
 export type Observable<A> = {
   readonly subscribe: Subscriber<A>;
@@ -29,11 +34,11 @@ export type Observable<A> = {
 
 export type Stream<A> = Observable<A> & {
   readonly pipe: Pipe<A>;
-  readonly behaviour: KsBehaviour;
-  readonly _unsafeLastValue: () => A | undefined;
+  readonly constructor: KsConstructor;
+  readonly snapshot: () => A | undefined;
 };
 
-export type KsBehaviour = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
+export type KsConstructor = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
 
 export const noop = () => void 0;
 
@@ -80,7 +85,7 @@ export const _lazy = <A>(observable: {
 /**
  * Create source on each subscription.
  */
-export const ksCold: KsBehaviour = <A>(
+export const ksCold: KsConstructor = <A>(
   subscriber: SubscriberRequired<A>,
 ): Stream<A> => {
   const subscribe: Subscriber<A> = observer => {
@@ -114,9 +119,9 @@ export const ksCold: KsBehaviour = <A>(
 
   const self: Stream<A> = {
     subscribe,
-    pipe: transformer => transformer(self),
-    behaviour: ksCold,
-    _unsafeLastValue: noop,
+    pipe: operator => operator(self),
+    constructor: ksCold,
+    snapshot: noop,
   };
 
   return self;
@@ -195,9 +200,9 @@ const createShareStream = <A>(
 
   const self: Stream<A> = {
     subscribe,
-    pipe: transformer => transformer(self),
-    behaviour: replay ? ksShareReplay : ksShare,
-    _unsafeLastValue: () => {
+    pipe: operator => operator(self),
+    constructor: replay ? ksShareReplay : ksShare,
+    snapshot: () => {
       return isSome(lastValue) ? lastValue.value : undefined;
     },
   };
@@ -208,9 +213,9 @@ const createShareStream = <A>(
 /**
  * Share source among multiple subscribers.
  */
-export const ksShare: KsBehaviour = f => createShareStream(f, false);
+export const ksShare: KsConstructor = f => createShareStream(f, false);
 
 /**
  * Share source and replay last emissions on subscription.
  */
-export const ksShareReplay: KsBehaviour = f => createShareStream(f, true);
+export const ksShareReplay: KsConstructor = f => createShareStream(f, true);

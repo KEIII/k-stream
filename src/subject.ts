@@ -13,7 +13,7 @@ export type Subject<A> = Stream<A> & {
   readonly complete: Complete;
 };
 
-export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
+export const ksSubject = <A>(constructor = ksShare): Subject<A> => {
   let isCompleted = false;
   let lastValue: Option<A> = none;
   const observersMap = new Map<symbol, Observer<A>>();
@@ -50,11 +50,11 @@ export const ksSubject = <A>(behaviour = ksShare): Subject<A> => {
         },
       };
     },
-    pipe: transformer => transformer(self),
-    behaviour,
+    pipe: operator => operator(self),
+    constructor: constructor,
     complete,
     next,
-    _unsafeLastValue: () => {
+    snapshot: () => {
       return isSome(lastValue) ? lastValue.value : undefined;
     },
   };

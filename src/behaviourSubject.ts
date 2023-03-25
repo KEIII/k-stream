@@ -7,7 +7,7 @@ export type BehaviourSubject<A> = Subject<A> & {
 
 export const ksBehaviourSubject = <A>(
   initValue: A,
-  behaviour = ksShareReplay,
+  constructor = ksShareReplay,
 ): BehaviourSubject<A> => {
   let isCompleted = false;
   let currentValue = initValue;
@@ -48,12 +48,12 @@ export const ksBehaviourSubject = <A>(
         },
       };
     },
-    pipe: transformer => transformer(self),
-    behaviour,
+    pipe: operator => operator(self),
+    constructor: constructor,
     complete,
     next,
     getValue,
-    _unsafeLastValue: getValue,
+    snapshot: getValue,
   };
 
   return self;

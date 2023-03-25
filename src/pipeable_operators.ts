@@ -1,46 +1,55 @@
 import {
-  KsBehaviour,
+  KsConstructor,
   Complete,
   Next,
   Observer,
   Stream,
-  Transformer,
+  PipeableOperator,
   Unsubscribable,
   _lazy,
 } from './core';
 import { some, none, Option, isSome, isNone } from './option';
-import { ksEmpty } from './factories';
+import { ksEmpty } from './creation_operators';
 import { ksSubject, Subject } from './subject';
 import { Either, isRight, left } from './either';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
 export const ksChangeBehaviour = <A>(
-  behaviour: KsBehaviour,
-): Transformer<A, A> => {
-  return stream => behaviour(stream.subscribe);
+  constructor: KsConstructor,
+): PipeableOperator<A, A> => {
+  return stream => constructor(stream.subscribe);
 };
 
 /**
  * Apply projection with each value from source.
  */
-export const ksMap = <A, B>(project: (value: A) => B): Transformer<A, B> => {
-  return stream => stream.pipe(ksFilterMap(x => some(project(x))));
+export const ksMap = <A, B>(
+  project: (value: A) => B,
+): PipeableOperator<A, B> => {
+  return stream => {
+    return stream.constructor(({ next, complete }) => {
+      return stream.subscribe({
+        next: value => next(project(value)),
+        complete,
+      });
+    });
+  };
 };
 
 /**
  * Map emissions to constant value.
  */
-export const ksMapTo = <A, B>(value: B): Transformer<A, B> => {
+export const ksMapTo = <A, B>(value: B): PipeableOperator<A, B> => {
   return stream => stream.pipe(ksMap(() => value));
 };
 
 /**
  * Transparently perform actions or side-effects, such as logging.
  */
-export const ksTap = <A>(observer: Observer<A>): Transformer<A, A> => {
+export const ksTap = <A>(observer: Observer<A>): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       return stream.subscribe({
         next: value => {
           observer.next?.(value);
@@ -60,9 +69,9 @@ export const ksTap = <A>(observer: Observer<A>): Transformer<A, A> => {
  */
 export const ksFilterMap = <A, B>(
   select: (value: A) => Option<B>,
-): Transformer<A, B> => {
+): PipeableOperator<A, B> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       return stream.subscribe({
         next: value => {
           const valueOptional = select(value);
@@ -81,9 +90,9 @@ export const ksFilterMap = <A, B>(
  */
 export const ksSwitch = <A, B>(
   project: (value: A) => Stream<B>,
-): Transformer<A, B> => {
+): PipeableOperator<A, B> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       let projectSubscription: Unsubscribable | null = null;
       let projectCompleted = false;
       let mainCompleted = false;
@@ -140,9 +149,9 @@ export const ksSwitch = <A, B>(
  */
 export const ksTakeUntil = <A>(
   notifier: Stream<unknown>,
-): Transformer<A, A> => {
+): PipeableOperator<A, A> => {
   return stream => {
-    const newStream = stream.behaviour<A>(({ next, complete }) => {
+    const newStream = stream.constructor<A>(({ next, complete }) => {
       let isCompleted = false;
 
       const mainSubscription = stream.subscribe({
@@ -192,10 +201,10 @@ export const ksTakeUntil = <A>(
 /**
  * Emit provided number of values before completing.
  */
-export const ksTake = <A>(count: number): Transformer<A, A> => {
+export const ksTake = <A>(count: number): PipeableOperator<A, A> => {
   if (count <= 0) return ksEmpty;
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       const _stream = _lazy(stream);
       let seen = 0;
 
@@ -224,9 +233,9 @@ export const ksTake = <A>(count: number): Transformer<A, A> => {
  */
 export const ksTakeWhile = <A>(
   predicate: (value: A, index: number) => boolean,
-): Transformer<A, A> => {
+): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       const _stream = _lazy(stream);
       let index = 0;
 
@@ -252,9 +261,9 @@ export const ksTakeWhile = <A>(
 /**
  * Delay emitted values by given time.
  */
-export const ksDelay = <A>(ms: number): Transformer<A, A> => {
+export const ksDelay = <A>(ms: number): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       const timers = new Set<TimeoutId>();
 
       const clearTimers = () => {
@@ -292,9 +301,9 @@ export const ksDelay = <A>(ms: number): Transformer<A, A> => {
 /**
  * Discard emitted values that take less than the specified time between output.
  */
-export const ksDebounce = <A>(dueTime: number): Transformer<A, A> => {
+export const ksDebounce = <A>(dueTime: number): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       let timeoutId: TimeoutId;
       let lastValue: Option<A> = none;
 
@@ -336,9 +345,9 @@ export const ksDebounce = <A>(dueTime: number): Transformer<A, A> => {
 /**
  * Emit first value then ignore for specified duration.
  */
-export const ksThrottle = <A>(duration: number): Transformer<A, A> => {
+export const ksThrottle = <A>(duration: number): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       let executedTime = Number.MIN_SAFE_INTEGER;
       let lastValue: Option<A> = none;
 
@@ -375,9 +384,9 @@ export const ksThrottle = <A>(duration: number): Transformer<A, A> => {
 /**
  * Emit the previous and current values as an array.
  */
-export const ksPairwise = <A>(): Transformer<A, [A, A]> => {
+export const ksPairwise = <A>(): PipeableOperator<A, [A, A]> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       let prevValue: Option<A> = none;
       return stream.subscribe({
         next: value => {
@@ -398,9 +407,9 @@ export const ksPairwise = <A>(): Transformer<A, [A, A]> => {
 export const ksScan = <A, B>(
   accumulator: (acc: B, curr: A) => B,
   seed: B,
-): Transformer<A, B> => {
+): PipeableOperator<A, B> => {
   return stream => {
-    return stream.behaviour(({ next, complete }) => {
+    return stream.constructor(({ next, complete }) => {
       let acc = seed;
       return stream.subscribe({
         next: value => {
@@ -416,10 +425,10 @@ export const ksScan = <A, B>(
 /**
  * Repeats an observable on completion.
  */
-export const ksRepeat = <A>(count: number): Transformer<A, A> => {
+export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
   if (count <= 0) return ksEmpty;
   return stream => {
-    return stream.behaviour(observer => {
+    return stream.constructor(observer => {
       let soFar = 0;
       let innerSub: Unsubscribable | null = null;
       const subscribeForRepeat = () => {
@@ -458,9 +467,9 @@ export const ksRepeat = <A>(count: number): Transformer<A, A> => {
  */
 export const ksRepeatWhen = <A>(
   notifier: (notifications: Stream<void>) => Stream<void>,
-): Transformer<A, A> => {
+): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(observer => {
+    return stream.constructor(observer => {
       let innerSub: Unsubscribable | null = null;
       let notifierSub: Unsubscribable | null = null;
       let syncResub = false;
@@ -534,9 +543,9 @@ export const ksRepeatWhen = <A>(
  */
 export const ksRetryWhen = <E, A>(
   notifier: (errors: Stream<E>) => Stream<Option<E>>,
-): Transformer<Either<E, A>, Either<E, A>> => {
+): PipeableOperator<Either<E, A>, Either<E, A>> => {
   return stream => {
-    return stream.behaviour(observer => {
+    return stream.constructor(observer => {
       let innerSub: Unsubscribable | null = null;
       let notifierSub: Unsubscribable | null = null;
       let syncResub = false;
@@ -611,9 +620,9 @@ export const ksRetryWhen = <E, A>(
  */
 export const ksWithLatestFrom = <A, B>(
   other: Stream<B>,
-): Transformer<A, [A, B]> => {
+): PipeableOperator<A, [A, B]> => {
   return stream => {
-    return stream.behaviour(observer => {
+    return stream.constructor(observer => {
       let otherOptional: Option<B> = none;
       const otherSub = other.subscribe({
         next: value => (otherOptional = some(value)),
@@ -641,9 +650,9 @@ export const ksWithLatestFrom = <A, B>(
  */
 export const ksAudit = <A>(
   durationSelector: (value: A) => Stream<unknown>,
-): Transformer<A, A> => {
+): PipeableOperator<A, A> => {
   return stream => {
-    return stream.behaviour(observer => {
+    return stream.constructor(observer => {
       let lastValue: Option<A> = none;
       let durationSubscriber: Unsubscribable | null = null;
       let isComplete = false;

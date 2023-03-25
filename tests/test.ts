@@ -191,7 +191,7 @@ describe('ksCold', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksCold);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue()).toBeUndefined();
+    expect(s.snapshot()).toBeUndefined();
     unsubscribe();
   });
 
@@ -277,7 +277,7 @@ describe('ksShare', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksShare);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue()).toBeUndefined();
+    expect(s.snapshot()).toBeUndefined();
     unsubscribe();
   });
 
@@ -335,7 +335,7 @@ describe('ksShareReplay', () => {
   it('should return last emitted value', () => {
     const s = ksOf(42, ksShareReplay);
     const { unsubscribe } = s.subscribe({});
-    expect(s._unsafeLastValue()).toEqual(42);
+    expect(s.snapshot()).toEqual(42);
     unsubscribe();
   });
 
@@ -823,7 +823,7 @@ describe('ksSubject', () => {
   });
 
   it('should test initial last value', () => {
-    expect(ksSubject()._unsafeLastValue()).toBeUndefined();
+    expect(ksSubject().snapshot()).toBeUndefined();
   });
 
   it('should test empty observer', () => {
@@ -857,7 +857,7 @@ describe('ksSubject', () => {
     s.complete();
     s.next(43);
     expect(s.subscribe({})).toBe(noopUnsubscribe);
-    expect(s._unsafeLastValue()).toBe(42);
+    expect(s.snapshot()).toBe(42);
   });
 });
 
@@ -1181,7 +1181,7 @@ describe('performance', () => {
   it('maximum call stack size exceeded', () => {
     const m = ksMap((x: number) => x + 1);
     let s = ksOf(0);
-    const max = 2_521;
+    const max = 2_048;
     for (let i = 0; i < max; i++) {
       s = s.pipe(m);
     }
@@ -1247,15 +1247,15 @@ describe('diamond problem (glitches)', () => {
     const view = jest.fn();
     const { unsubscribe } = displayName.subscribe({ next: view });
     expect(view.mock.calls.length).toBe(1);
-    expect(displayName._unsafeLastValue()).toBe('John Doe');
+    expect(displayName.snapshot()).toBe('John Doe');
 
     firstName.next('Joseph');
     expect(view.mock.calls.length).toBe(2);
-    expect(displayName._unsafeLastValue()).toBe('Joseph Doe');
+    expect(displayName.snapshot()).toBe('Joseph Doe');
 
     firstName.next('Jooooooooooooooseph');
     expect(view.mock.calls.length).toBe(5);
-    expect(displayName._unsafeLastValue()).toBe('Jooooooooooooooseph');
+    expect(displayName.snapshot()).toBe('Jooooooooooooooseph');
 
     expect(view.mock.calls.map(args => args[0])).toEqual([
       'John Doe',

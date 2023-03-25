@@ -6,7 +6,7 @@ import {
   Stream,
   noopUnsubscribe,
 } from './core';
-import { ksMap } from './transformers';
+import { ksMap } from './pipeable_operators';
 import { isSome, none, Option, some } from './option';
 import { Either, left, right } from './either';
 
@@ -28,8 +28,8 @@ export const ksEmpty = (): Stream<never> => _ksEmpty;
 /**
  * Emit variable amount of values in a sequence and then emits a complete notification.
  */
-export const ksOf = <A>(value: A, behaviour = ksCold): Stream<A> => {
-  return behaviour(({ next, complete }) => {
+export const ksOf = <A>(value: A, constructor = ksCold): Stream<A> => {
+  return constructor(({ next, complete }) => {
     next(value);
     complete();
     return noopUnsubscribe;
@@ -43,7 +43,7 @@ export const ksConcat = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<A | B> => {
-  return stream_a.behaviour(({ next, complete }) => {
+  return stream_a.constructor(({ next, complete }) => {
     const b = _lazy(stream_b);
 
     const a = stream_a.subscribe({
@@ -69,7 +69,7 @@ export const ksMerge = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<A | B> => {
-  return stream_a.behaviour(({ next, complete }) => {
+  return stream_a.constructor(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     const a = _lazy(stream_a);
@@ -114,7 +114,7 @@ export const ksZip = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return stream_a.behaviour(({ next, complete }) => {
+  return stream_a.constructor(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     const queue_a: A[] = [];
@@ -174,10 +174,10 @@ export const ksZip = <A, B>(
  */
 export const ksTimeout = (
   ms: number,
-  behaviour = ksCold,
+  constructor = ksCold,
   scheduler = asyncScheduler,
 ): Stream<number> => {
-  return behaviour(({ next, complete }) => {
+  return constructor(({ next, complete }) => {
     const handler = () => {
       next(0);
       complete();
@@ -191,10 +191,10 @@ export const ksTimeout = (
  */
 export const ksInterval = (
   ms: number,
-  behaviour = ksCold,
+  constructor = ksCold,
   scheduler = asyncScheduler,
 ): Stream<number> => {
-  return behaviour(({ next }) => {
+  return constructor(({ next }) => {
     let count = 0;
     let sub = noopUnsubscribe;
     let isUnsubscribed = false;
@@ -225,12 +225,12 @@ export const ksInterval = (
  */
 export const ksPeriodic = (
   ms: number,
-  behaviour = ksCold,
+  constructor = ksCold,
   scheduler = asyncScheduler,
 ): Stream<number> => {
   return ksConcat(
-    ksOf(0, behaviour),
-    ksInterval(ms, behaviour, scheduler).pipe(ksMap(n => n + 1)),
+    ksOf(0, constructor),
+    ksInterval(ms, constructor, scheduler).pipe(ksMap(n => n + 1)),
   );
 };
 
@@ -241,7 +241,7 @@ export const ksCombineLatest = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return stream_a.behaviour(({ next, complete }) => {
+  return stream_a.constructor(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     let value_a: Option<A> = none;
@@ -300,7 +300,7 @@ export const ksForkJoin = <A, B>(
   stream_a: Stream<A>,
   stream_b: Stream<B>,
 ): Stream<[A, B]> => {
-  return stream_a.behaviour(({ next, complete }) => {
+  return stream_a.constructor(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
     let value_a: Option<A> = none;
@@ -343,9 +343,9 @@ export const ksForkJoin = <A, B>(
 
 export const ksFromPromise = <A, E>(
   promise: Promise<A>,
-  behaviour = ksCold,
+  constructor = ksCold,
 ): Stream<Either<E, A>> => {
-  return behaviour(({ next, complete }) => {
+  return constructor(({ next, complete }) => {
     let on = true;
     promise
       .then(value => {
