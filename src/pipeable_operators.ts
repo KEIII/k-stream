@@ -15,7 +15,7 @@ import { Either, isRight, left } from './either';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-export const ksChangeBehaviour = <A>(
+export const ksChangeConstructor = <A>(
   constructor: KsConstructor,
 ): PipeableOperator<A, A> => {
   return stream => constructor(stream.subscribe);

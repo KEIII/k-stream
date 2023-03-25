@@ -19,7 +19,7 @@ import {
   tap,
 } from 'rxjs/operators';
 import {
-  ksChangeBehaviour,
+  ksChangeConstructor,
   ksCold,
   ksCombineLatest,
   ksConcat,
@@ -428,10 +428,10 @@ it('should complete after pipe', async () => {
   expect(await s).toEqual(await s);
 });
 
-it('should change behaviour', async () => {
+it('should change constructor', async () => {
   const numbers = [1, 2];
   const s = ksTimeout(0)
-    .pipe(ksChangeBehaviour(ksShare))
+    .pipe(ksChangeConstructor(ksShare))
     .pipe(ksMap(() => numbers.pop()));
   const a = stackOut(s);
   const b = stackOut(s);
