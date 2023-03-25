@@ -8,7 +8,7 @@ import {
 import { ksMap } from './pipeable_operators';
 import { isSome, none, Option, some } from './option';
 import { Either, left, right } from './either';
-import { _delayUnsubscribable } from './private';
+import { _unsubscribableObservable } from './private';
 
 /**
  * Observable that emits no items and does not terminate.
@@ -44,7 +44,7 @@ export const ksConcat = <A, B>(
   stream_b: Stream<B>,
 ): Stream<A | B> => {
   return stream_a.constructor(({ next, complete }) => {
-    const b = _delayUnsubscribable(stream_b);
+    const b = _unsubscribableObservable(stream_b);
 
     const a = stream_a.subscribe({
       next,
@@ -72,8 +72,8 @@ export const ksMerge = <A, B>(
   return stream_a.constructor(({ next, complete }) => {
     let completed_a = false;
     let completed_b = false;
-    const a = _delayUnsubscribable(stream_a);
-    const b = _delayUnsubscribable(stream_b);
+    const a = _unsubscribableObservable(stream_a);
+    const b = _unsubscribableObservable(stream_b);
 
     const unsubscribe = () => {
       b.unsubscribe();
@@ -119,8 +119,8 @@ export const ksZip = <A, B>(
     let completed_b = false;
     const queue_a: A[] = [];
     const queue_b: B[] = [];
-    const a = _delayUnsubscribable(stream_a);
-    const b = _delayUnsubscribable(stream_b);
+    const a = _unsubscribableObservable(stream_a);
+    const b = _unsubscribableObservable(stream_b);
 
     const unsubscribe = () => {
       b.unsubscribe();
@@ -246,8 +246,8 @@ export const ksCombineLatest = <A, B>(
     let completed_b = false;
     let value_a: Option<A> = none;
     let value_b: Option<B> = none;
-    const a = _delayUnsubscribable(stream_a);
-    const b = _delayUnsubscribable(stream_b);
+    const a = _unsubscribableObservable(stream_a);
+    const b = _unsubscribableObservable(stream_b);
 
     const unsubscribe = () => {
       b.unsubscribe();
@@ -305,8 +305,8 @@ export const ksForkJoin = <A, B>(
     let completed_b = false;
     let value_a: Option<A> = none;
     let value_b: Option<B> = none;
-    const a = _delayUnsubscribable(stream_a);
-    const b = _delayUnsubscribable(stream_b);
+    const a = _unsubscribableObservable(stream_a);
+    const b = _unsubscribableObservable(stream_b);
 
     const unsubscribe = () => {
       b.unsubscribe();

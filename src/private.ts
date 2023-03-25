@@ -9,7 +9,7 @@ import { noopUnsubscribe, Observable, Unsubscribable } from './core';
  *
  * @private
  */
-export const _delayUnsubscribable = <A>(
+export const _unsubscribableObservable = <A>(
   observable: Observable<A>,
 ): Observable<A> & Unsubscribable => {
   let isUnsubscribed = false;
