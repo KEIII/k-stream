@@ -4,7 +4,7 @@ import { noopUnsubscribe, Observable, Unsubscribable } from './core';
  * Creates new observable object with `unsubscribe()` method
  * what could be called before `subscribe()`.
  *
- * That required then `sub.unsubscribe()` may be called
+ * That required when `sub.unsubscribe()` may be called
  * in the `subscribe()` method.
  *
  * @private
