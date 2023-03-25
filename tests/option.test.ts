@@ -1,7 +1,7 @@
-import { Option, some, none } from '../src';
+import { Option, some, none, SymbolOption } from '../src';
 
 const unwrapBySwitchStatement = <T>(o: Option<T>): T | null => {
-  switch (o._tag) {
+  switch (o[SymbolOption]) {
     case 'Some': {
       return o.value;
     }
@@ -17,7 +17,7 @@ const unwrapBySwitchStatement = <T>(o: Option<T>): T | null => {
 };
 
 const unwrapByIfStatement = <T>(o: Option<T>): T | null => {
-  return o._tag === 'Some' ? o.value : null;
+  return o[SymbolOption] === 'Some' ? o.value : null;
 };
 
 describe('Option', () => {

@@ -1,18 +1,26 @@
-export type Some<A> = {
-  readonly _tag: 'Some';
-  readonly value: A;
-};
+export const SymbolOption = Symbol('Option');
 
-export type None = {
-  readonly _tag: 'None';
-};
+export type Some<A> = Readonly<{
+  [SymbolOption]: 'Some';
+  value: A;
+}>;
+
+export type None = Readonly<{
+  [SymbolOption]: 'None';
+}>;
 
 export type Option<A> = None | Some<A>;
 
-export const isSome = <A>(fa: Option<A>): fa is Some<A> => fa._tag === 'Some';
+export const isSome = <A>(fa: Option<A>): fa is Some<A> =>
+  fa[SymbolOption] === 'Some';
 
-export const isNone = <A>(fa: Option<A>): fa is None => fa._tag === 'None';
+export const isNone = <A>(fa: Option<A>): fa is None =>
+  fa[SymbolOption] === 'None';
 
-export const some = <A>(a: A): Option<A> => ({ _tag: 'Some', value: a });
+export const some = <A>(a: A): Option<A> =>
+  Object.freeze({
+    [SymbolOption]: 'Some',
+    value: a,
+  });
 
-export const none: Option<never> = { _tag: 'None' };
+export const none: Option<never> = Object.freeze({ [SymbolOption]: 'None' });
