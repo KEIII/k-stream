@@ -1,21 +1,29 @@
-export type Left<E> = { _tag: 'Left'; left: E };
+export const SymbolEither = Symbol('Either');
 
-export type Right<A> = { _tag: 'Right'; right: A };
+export type Left<E> = Readonly<{
+  [SymbolEither]: 'Left';
+  left: E;
+}>;
+
+export type Right<A> = Readonly<{
+  [SymbolEither]: 'Right';
+  right: A;
+}>;
 
 export type Either<E, A> = Left<E> | Right<A>;
 
 export const left = <E = never, A = never>(e: E): Either<E, A> => {
-  return { _tag: 'Left', left: e };
+  return Object.freeze({ [SymbolEither]: 'Left', left: e });
 };
 
 export const right = <E = never, A = never>(a: A): Either<E, A> => {
-  return { _tag: 'Right', right: a };
+  return Object.freeze({ [SymbolEither]: 'Right', right: a });
 };
 
 export const isLeft = <E, A>(ma: Either<E, A>): ma is Left<E> => {
-  return ma._tag === 'Left';
+  return ma[SymbolEither] === 'Left';
 };
 
 export const isRight = <E, A>(ma: Either<E, A>): ma is Right<A> => {
-  return ma._tag === 'Right';
+  return ma[SymbolEither] === 'Right';
 };
