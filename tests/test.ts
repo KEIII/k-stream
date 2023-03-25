@@ -1058,16 +1058,26 @@ describe('ksRepeat', () => {
 });
 
 describe('ksRepeatWhen', () => {
-  it('should repeat when notified via returned notifier on complete', async () => {
-    let retried = 0;
-    const s = ksConcat(ksOf(1), ksOf(2)).pipe(
-      ksRepeatWhen(notifications => {
-        return notifications
-          .pipe(ksTakeWhile(() => retried <= 2))
-          .pipe(ksTap({ next: () => retried++ }));
-      }),
+  it('should repeat 4 times', async () => {
+    const s = from([1, 2, 3]).pipe(
+      ksRepeatWhen(notifications => notifications.pipe(ksTake(4))),
     );
-    expect(await stackOut(s)).toEqual([1, 2, 1, 2, 1, 2, 1, 2]);
+    expect(await stackOut(s)).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3]);
+  });
+
+  it('should repeat once', async () => {
+    const s = from([1, 2, 3]).pipe(
+      ksRepeatWhen(() =>
+        ksCold(({ next, complete }) => {
+          Promise.resolve().then(() => {
+            next();
+            complete();
+          });
+          return noopUnsubscribe;
+        }),
+      ),
+    );
+    expect(await stackOut(s)).toEqual([1, 2, 3, 1, 2, 3]);
   });
 });
 
