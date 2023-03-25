@@ -670,23 +670,18 @@ export const ksAudit = <A>(
         }
       };
 
-      const cleanupDuration = () => {
-        durationSubscriber?.unsubscribe();
-        durationSubscriber = null;
-        if (isComplete) {
-          observer.complete();
-        }
-      };
-
       const mainSub = stream.subscribe({
         next: value => {
           lastValue = some(value);
           if (!durationSubscriber) {
-            const s = _unsubscribableObservable(durationSelector(value));
-            durationSubscriber = s;
-            s.subscribe({
+            const tmp = _unsubscribableObservable(durationSelector(value));
+            durationSubscriber = tmp;
+            tmp.subscribe({
               next: endDuration,
-              complete: cleanupDuration,
+              complete: () => {
+                durationSubscriber?.unsubscribe();
+                durationSubscriber = null;
+              },
             });
           }
         },
