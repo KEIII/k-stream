@@ -1174,9 +1174,15 @@ describe('ksAudit', () => {
     expect(await stackOut(s)).toEqual([42]);
   });
 
-  it('should emit one value', async () => {
-    const s = ksOf(42).pipe(ksAudit(n => ksOf(n)));
-    expect(await stackOut(s)).toEqual([42]);
+  it('should works if audit completes before main', async () => {
+    const from = <T>(a: T[]) =>
+      ksCold<T>(({ next, complete }) => {
+        a.forEach(next);
+        complete();
+        return noopUnsubscribe;
+      });
+    const s = from([1, 2]).pipe(ksAudit(() => from([1])));
+    expect(await stackOut(s)).toEqual([1, 2]);
   });
 
   it('should emit no values if durations are EMPTY', async () => {

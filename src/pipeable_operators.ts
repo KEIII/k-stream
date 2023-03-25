@@ -682,7 +682,9 @@ export const ksAudit = <A>(
         next: value => {
           lastValue = some(value);
           if (!durationSubscriber) {
-            durationSubscriber = durationSelector(value).subscribe({
+            const s = _lazy(durationSelector(value));
+            durationSubscriber = s;
+            s.subscribe({
               next: endDuration,
               complete: cleanupDuration,
             });
