@@ -1,4 +1,4 @@
-import { some, none, isSome, Option } from './option';
+import { isSome, none, Option, some } from './option';
 
 export type Unsubscribable = {
   readonly unsubscribe: () => void;
@@ -53,33 +53,6 @@ export const asyncScheduler: Scheduler = {
     const t = setTimeout(handler, ms);
     return { unsubscribe: () => clearTimeout(t) };
   },
-};
-
-/**
- * Creates new observable object with `unsubscribe()` method
- * what could be called before `subscribe()`.
- */
-export const _lazy = <A>(observable: {
-  subscribe: (observer: A) => Unsubscribable;
-}) => {
-  let isUnsubscribed = false;
-  let subscription: Unsubscribable | undefined;
-  return {
-    subscribe: (observer: A): Unsubscribable => {
-      if (isUnsubscribed) return noopUnsubscribe;
-      subscription?.unsubscribe();
-      subscription = observable.subscribe(observer);
-      // check again if `unsubscribed` was changed inside `observer()`
-      if (isUnsubscribed) {
-        subscription.unsubscribe();
-      }
-      return subscription;
-    },
-    unsubscribe: () => {
-      isUnsubscribed = true;
-      subscription?.unsubscribe();
-    },
-  };
 };
 
 /**

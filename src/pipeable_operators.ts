@@ -6,12 +6,12 @@ import {
   Stream,
   PipeableOperator,
   Unsubscribable,
-  _lazy,
 } from './core';
 import { some, none, Option, isSome, isNone } from './option';
 import { ksEmpty } from './creation_operators';
 import { ksSubject, Subject } from './subject';
 import { Either, isRight, left } from './either';
+import { _delayUnsubscribable } from './private';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -167,7 +167,7 @@ export const ksTakeUntil = <A>(
       }
 
       let isTerminated = false;
-      const _notifier = _lazy(notifier);
+      const _notifier = _delayUnsubscribable(notifier);
 
       const unsubscribe = () => {
         _notifier.unsubscribe();
@@ -205,7 +205,7 @@ export const ksTake = <A>(count: number): PipeableOperator<A, A> => {
   if (count <= 0) return ksEmpty;
   return stream => {
     return stream.constructor(({ next, complete }) => {
-      const _stream = _lazy(stream);
+      const _stream = _delayUnsubscribable(stream);
       let seen = 0;
 
       const onComplete: Complete = () => {
@@ -236,7 +236,7 @@ export const ksTakeWhile = <A>(
 ): PipeableOperator<A, A> => {
   return stream => {
     return stream.constructor(({ next, complete }) => {
-      const _stream = _lazy(stream);
+      const _stream = _delayUnsubscribable(stream);
       let index = 0;
 
       const onComplete: Complete = () => {
@@ -682,7 +682,7 @@ export const ksAudit = <A>(
         next: value => {
           lastValue = some(value);
           if (!durationSubscriber) {
-            const s = _lazy(durationSelector(value));
+            const s = _delayUnsubscribable(durationSelector(value));
             durationSubscriber = s;
             s.subscribe({
               next: endDuration,

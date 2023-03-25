@@ -56,8 +56,6 @@ import {
   left,
   isRight,
   isLeft,
-  _lazy,
-  SubscriberRequired,
   ksNever,
   Scheduler,
   noopUnsubscribe,
@@ -68,14 +66,14 @@ import {
   ksAudit,
   Stream,
   Either,
+  Observable,
 } from '../src';
+import { _delayUnsubscribable } from '../src/private';
 
-const stackOut = <A>(observable: {
-  subscribe: SubscriberRequired<A>;
-}): Promise<A[]> => {
+const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
   return new Promise<A[]>(resolve => {
     const output: A[] = [];
-    const _observable = _lazy(observable);
+    const _observable = _delayUnsubscribable(observable);
     _observable.subscribe({
       next: v => output.push(v),
       complete: () => {
@@ -88,14 +86,14 @@ const stackOut = <A>(observable: {
 
 describe('_lazy', () => {
   it('should return noopUnsubscribe', () => {
-    const s = _lazy(ksOf(42));
+    const s = _delayUnsubscribable(ksOf(42));
     s.unsubscribe();
     expect(s.subscribe({})).toBe(noopUnsubscribe);
   });
 
   it('should always teardown before starting the next cycle', () => {
     const result: unknown[] = [];
-    const s = _lazy(
+    const s = _delayUnsubscribable(
       ksCold(() => {
         return { unsubscribe: () => result.push('teardown') };
       }),
