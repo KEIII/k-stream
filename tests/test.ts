@@ -68,12 +68,12 @@ import {
   Either,
   Observable,
 } from '../src';
-import { _delayUnsubscribable } from '../src/private';
+import { _unsubscribableObservable } from '../src/private';
 
 const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
   return new Promise<A[]>(resolve => {
     const output: A[] = [];
-    const _observable = _delayUnsubscribable(observable);
+    const _observable = _unsubscribableObservable(observable);
     _observable.subscribe({
       next: v => output.push(v),
       complete: () => {
@@ -86,14 +86,14 @@ const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
 
 describe('_lazy', () => {
   it('should return noopUnsubscribe', () => {
-    const s = _delayUnsubscribable(ksOf(42));
+    const s = _unsubscribableObservable(ksOf(42));
     s.unsubscribe();
     expect(s.subscribe({})).toBe(noopUnsubscribe);
   });
 
   it('should always teardown before starting the next cycle', () => {
     const result: unknown[] = [];
-    const s = _delayUnsubscribable(
+    const s = _unsubscribableObservable(
       ksCold(() => {
         return { unsubscribe: () => result.push('teardown') };
       }),
