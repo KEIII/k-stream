@@ -690,7 +690,7 @@ export const ksAudit = <A>(
         },
         complete: () => {
           isComplete = true;
-          if (!isSome(lastValue) || !durationSubscriber) {
+          if (isNone(lastValue) || !durationSubscriber) {
             observer.complete();
           }
         },

@@ -1169,6 +1169,16 @@ describe('ksAudit', () => {
     ]);
   });
 
+  it('should complete main stream before audit completes', async () => {
+    const s = ksOf(42).pipe(ksAudit(() => ksTimeout(1_000)));
+    expect(await stackOut(s)).toEqual([42]);
+  });
+
+  it('should emit one value', async () => {
+    const s = ksOf(42).pipe(ksAudit(n => ksOf(n)));
+    expect(await stackOut(s)).toEqual([42]);
+  });
+
   it('should emit no values if durations are EMPTY', async () => {
     const s = ksConcat(ksOf(1), ksOf(2))
       .pipe(ksAudit(ksEmpty))
