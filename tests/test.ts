@@ -84,6 +84,13 @@ const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
   });
 };
 
+const from = <T>(a: T[]) =>
+  ksCold<T>(({ next, complete }) => {
+    a.forEach(next);
+    complete();
+    return noopUnsubscribe;
+  });
+
 describe('_unsubscribableObservable', () => {
   it('should return noopUnsubscribe', () => {
     const s = _unsubscribableObservable(ksOf(42));
@@ -1065,17 +1072,34 @@ describe('ksRepeatWhen', () => {
 });
 
 describe('ksRetryWhen', () => {
+  it('should emit an error from async notifier after main complete', async () => {
+    const s = ksOf(left('e1')).pipe(
+      ksRetryWhen(() =>
+        ksCold(({ next }) => {
+          Promise.resolve().then(() => next(some('e2')));
+          return noopUnsubscribe;
+        }),
+      ),
+    );
+    expect(await stackOut(s)).toEqual([left('e2')]);
+  });
+
   it('should retry when notified via returned notifier', async () => {
     let retried = 0;
-    const s = ksConcat(ksOf(1), ksConcat(ksOf(2), ksOf(3)))
-      .pipe(ksMap(n => (n === 3 ? left(String(n)) : right(n))))
-      .pipe(
-        ksRetryWhen(errors => {
-          return errors.pipe(
-            ksMap(error => (++retried < 2 ? none : some(error))),
-          );
-        }),
-      );
+    const s = from([right(1), right(2), left('3')]).pipe(
+      ksRetryWhen(errors =>
+        errors.pipe(
+          ksMap(error => {
+            retried++;
+            if (retried < 2) {
+              return none; // retry
+            } else {
+              return some(error); // emit error
+            }
+          }),
+        ),
+      ),
+    );
     expect(await stackOut(s)).toEqual([
       right(1),
       right(2),
@@ -1178,12 +1202,6 @@ describe('ksAudit', () => {
   });
 
   it('should works if audit completes before main', async () => {
-    const from = <T>(a: T[]) =>
-      ksCold<T>(({ next, complete }) => {
-        a.forEach(next);
-        complete();
-        return noopUnsubscribe;
-      });
     const s = from([1, 2]).pipe(ksAudit(() => from([1])));
     expect(await stackOut(s)).toEqual([1, 2]);
   });
