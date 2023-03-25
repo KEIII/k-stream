@@ -1172,6 +1172,11 @@ describe('ksAudit', () => {
     expect(await stackOut(s)).toEqual([42]);
   });
 
+  it('should emit once', async () => {
+    const s = ksOf(42).pipe(ksAudit(() => ksOf(1)));
+    expect(await stackOut(s)).toEqual([42]);
+  });
+
   it('should works if audit completes before main', async () => {
     const from = <T>(a: T[]) =>
       ksCold<T>(({ next, complete }) => {
