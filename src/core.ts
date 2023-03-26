@@ -1,4 +1,5 @@
 import { isSome, none, Option, some } from './option';
+import { _once } from './private';
 
 export type Unsubscribable = {
   readonly unsubscribe: () => void;
@@ -83,10 +84,10 @@ export const ksCold: KsConstructor = <A>(
       },
     });
     return {
-      unsubscribe: () => {
+      unsubscribe: _once(() => {
         observer = {}; // stop emitting values after unsubscribe
         unsubscribe();
-      },
+      }),
     };
   };
 
@@ -145,7 +146,7 @@ const createShareStream = <A>(
 
     const subscribeId = Symbol();
 
-    const unsubscribe = () => {
+    const unsubscribe = _once(() => {
       observersMap.delete(subscribeId);
       if (observersMap.size === 0) {
         isCompleted = false;
@@ -153,7 +154,7 @@ const createShareStream = <A>(
         subscription?.unsubscribe();
         subscription = null;
       }
-    };
+    });
 
     observersMap.set(subscribeId, observer);
 
