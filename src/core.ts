@@ -146,16 +146,6 @@ const createShareStream = <A>(
 
     const subscribeId = Symbol();
 
-    const unsubscribe = _once(() => {
-      observersMap.delete(subscribeId);
-      if (observersMap.size === 0) {
-        isCompleted = false;
-        lastValue = none;
-        subscription?.unsubscribe();
-        subscription = null;
-      }
-    });
-
     observersMap.set(subscribeId, observer);
 
     // We need to create subscription after added observer into observersMap
@@ -169,7 +159,17 @@ const createShareStream = <A>(
       });
     }
 
-    return { unsubscribe };
+    return {
+      unsubscribe: _once(() => {
+        observersMap.delete(subscribeId);
+        if (observersMap.size === 0) {
+          isCompleted = false;
+          lastValue = none;
+          subscription!.unsubscribe();
+          subscription = null;
+        }
+      }),
+    };
   };
 
   const self: Stream<A> = {
