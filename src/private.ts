@@ -37,6 +37,7 @@ export const _unsubscribableObservable = <A>(
 
 export type SubscribableOnce<A> = Unsubscribable & {
   isNull: () => boolean;
+  notNull: () => boolean;
   ifNull: (f: () => Observable<A>) => Observable<A>;
   restartWith: (observable: Observable<A>) => Observable<A>;
   stop: () => void; // Unsubscribe current sub but it's possible to restart
@@ -62,8 +63,8 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
   };
 
   const restartWith: SubscribableOnce<A>['restartWith'] = observable => {
-    const sub = _unsubscribableObservable(observable);
     stop();
+    const sub = _unsubscribableObservable(observable);
     currentSub = sub;
     return {
       subscribe: ({ next, complete }) => {
@@ -88,6 +89,7 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
 
   return {
     isNull: () => currentSub === null,
+    notNull: () => currentSub !== null,
     ifNull: f => {
       return isUnsubscribed || currentSub !== null ? skip : restartWith(f());
     },

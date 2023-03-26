@@ -1,7 +1,24 @@
 import { ksCold, ksOf, noopUnsubscribe } from '../src';
-import { _subscribableOnce, _once } from '../src/private';
+import {
+  _subscribableOnce,
+  _once,
+  _unsubscribableObservable,
+} from '../src/private';
 
 describe('private', () => {
+  it('should always teardown before starting the next cycle', () => {
+    const result: unknown[] = [];
+    const s = _unsubscribableObservable(
+      ksCold(() => {
+        return { unsubscribe: () => result.push('teardown') };
+      }),
+    );
+    s.subscribe({ next: value => result.push(value) });
+    s.subscribe({ next: value => result.push(value) });
+    s.subscribe({ next: value => result.push(value) }).unsubscribe();
+    expect(result).toEqual(['teardown', 'teardown', 'teardown']);
+  });
+
   it('should test _subscribableOnce', () => {
     const n = [1, 2, 3];
     const s = ksCold<number>(({ next, complete }) => {

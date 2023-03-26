@@ -1,4 +1,4 @@
-import { ksCold, ksOf, ksRepeat } from '../src';
+import { ksCold, ksOf, ksRepeat, ksTap } from '../src';
 import { stackOut } from './utils';
 
 describe('ksRepeat', () => {
@@ -64,7 +64,7 @@ describe('ksRepeat', () => {
     ]);
   });
 
-  it('should always teardown before starting the next cycle, even when synchronous', () => {
+  it('should always teardown before starting the next cycle, even when synchronous', async () => {
     const results: unknown[] = [];
     const source = ksCold<number>(observer => {
       observer.next(1);
@@ -76,13 +76,15 @@ describe('ksRepeat', () => {
         },
       };
     });
-    source
-      .pipe(ksRepeat(3))
-      .subscribe({
-        next: value => results.push(value),
-        complete: () => results.push('complete'),
-      })
-      .unsubscribe();
+
+    await stackOut(
+      source.pipe(ksRepeat(3)).pipe(
+        ksTap({
+          next: value => results.push(value),
+          complete: () => results.push('complete'),
+        }),
+      ),
+    );
 
     expect(results).toEqual([
       1,

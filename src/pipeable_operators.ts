@@ -427,34 +427,26 @@ export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
   return stream => {
     return stream.constructor(observer => {
       let soFar = 0;
-      let innerSub: Unsubscribable | null = null;
+      const innerSub = _subscribableOnce<A>();
+
       const subscribeForRepeat = () => {
-        let syncUnsub = false;
-        innerSub?.unsubscribe();
-        innerSub = stream.subscribe({
+        innerSub.restartWith(stream).subscribe({
           next: observer.next,
           complete: () => {
             if (++soFar < count) {
-              if (innerSub) {
-                innerSub.unsubscribe();
-                innerSub = null;
-                subscribeForRepeat();
-              } else {
-                syncUnsub = true;
-              }
+              // repeat asynchronously
+              // waiting for the previous to be unsubscribed
+              Promise.resolve().then(subscribeForRepeat);
             } else {
               observer.complete();
             }
           },
         });
-        if (syncUnsub) {
-          innerSub.unsubscribe();
-          innerSub = null;
-          subscribeForRepeat();
-        }
       };
+
       subscribeForRepeat();
-      return { unsubscribe: () => innerSub?.unsubscribe() };
+
+      return innerSub;
     });
   };
 };
