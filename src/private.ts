@@ -37,6 +37,7 @@ export const _unsubscribableObservable = <A>(
 export type SubscribableOnce<A> = Unsubscribable & {
   isNull: () => boolean;
   ifNull: (f: () => Observable<A>) => Observable<A>;
+  restartWith: (observable: Observable<A>) => Observable<A>;
 };
 
 /**
@@ -45,11 +46,11 @@ export type SubscribableOnce<A> = Unsubscribable & {
  * - `unsubscribe()` allows to unsubscribe anytime
  */
 export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
-  let sub: UnsubscribableObservable<A> | null = null;
+  let currentSub: UnsubscribableObservable<A> | null = null;
 
   const unsubscribe = () => {
-    sub?.unsubscribe();
-    sub = null;
+    currentSub?.unsubscribe();
+    currentSub = null;
   };
 
   const skip: UnsubscribableObservable<A> = {
@@ -57,19 +58,35 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
     unsubscribe,
   };
 
+  const restartWith: SubscribableOnce<A>['restartWith'] = observable => {
+    const sub = _unsubscribableObservable(observable);
+    unsubscribe();
+    currentSub = sub;
+    return {
+      subscribe: ({ next, complete }) => {
+        return sub.subscribe({
+          next: value => {
+            if (currentSub === sub) {
+              // Ignore call `next()` on outdated observable
+              next?.(value);
+            }
+          },
+          complete: () => {
+            if (currentSub === sub) {
+              // Ignore call `complete()` on outdated observable
+              complete?.();
+            }
+          },
+        });
+      },
+      unsubscribe,
+    };
+  };
+
   return {
-    isNull: () => sub === null,
-    ifNull: f => {
-      if (sub === null) {
-        sub = _unsubscribableObservable(f());
-        return {
-          subscribe: sub.subscribe,
-          unsubscribe,
-        };
-      } else {
-        return skip;
-      }
-    },
+    isNull: () => currentSub === null,
+    ifNull: f => (currentSub === null ? restartWith(f()) : skip),
     unsubscribe,
+    restartWith,
   };
 };

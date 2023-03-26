@@ -546,9 +546,8 @@ export const ksRetryWhen = <E, A>(
 ): PipeableOperator<Either<E, A>, Either<E, A>> => {
   return stream => {
     return stream.constructor(observer => {
-      let innerSub: Unsubscribable | null = null;
-      let notifierSub: Unsubscribable | null = null;
-      let syncResub = false;
+      const innerSub = _subscribableOnce<Either<E, A>>();
+      const notifierSub = _subscribableOnce<Option<E>>();
       let errors$: Subject<E> | null = null;
       let isMainComplete = false;
       let isLockComplete = false;
@@ -556,8 +555,7 @@ export const ksRetryWhen = <E, A>(
       const subscribeForRetryWhen = () => {
         isMainComplete = false;
         isLockComplete = false;
-        innerSub?.unsubscribe();
-        innerSub = stream.subscribe({
+        innerSub.restartWith(stream).subscribe({
           next: eitherValue => {
             if (isRight(eitherValue)) {
               isLockComplete = false;
@@ -566,15 +564,10 @@ export const ksRetryWhen = <E, A>(
               isLockComplete = true;
               if (errors$ === null) {
                 errors$ = ksSubject();
-                notifierSub?.unsubscribe();
-                notifierSub = notifier(errors$).subscribe({
+                notifierSub.restartWith(notifier(errors$)).subscribe({
                   next: optionError => {
                     if (isNone(optionError)) {
-                      if (innerSub) {
-                        subscribeForRetryWhen();
-                      } else {
-                        syncResub = true;
-                      }
+                      subscribeForRetryWhen();
                     } else {
                       isLockComplete = false;
                       observer.next(left(optionError.value));
@@ -595,20 +588,14 @@ export const ksRetryWhen = <E, A>(
             }
           },
         });
-        if (syncResub) {
-          innerSub.unsubscribe();
-          innerSub = null;
-          syncResub = false;
-          subscribeForRetryWhen();
-        }
       };
 
       subscribeForRetryWhen();
 
       return {
         unsubscribe: () => {
-          notifierSub?.unsubscribe();
-          innerSub?.unsubscribe();
+          notifierSub.unsubscribe();
+          innerSub.unsubscribe();
         },
       };
     });
