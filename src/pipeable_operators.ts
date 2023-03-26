@@ -11,7 +11,7 @@ import { some, none, Option, isSome, isNone } from './option';
 import { ksEmpty } from './creation_operators';
 import { ksSubject, Subject } from './subject';
 import { Either, isRight, left } from './either';
-import { _unsubscribableObservable } from './private';
+import { _subscribableOnce, _unsubscribableObservable } from './private';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -654,12 +654,11 @@ export const ksAudit = <A>(
   return stream => {
     return stream.constructor(observer => {
       let lastValue: Option<A> = none;
-      let durationSubscriber: Unsubscribable | null = null;
+      const durationSubscriber = _subscribableOnce<unknown>();
       let isComplete = false;
 
       const endDuration = () => {
-        durationSubscriber?.unsubscribe();
-        durationSubscriber = null;
+        durationSubscriber.unsubscribe();
         if (isSome(lastValue)) {
           const value = lastValue;
           lastValue = none;
@@ -673,21 +672,16 @@ export const ksAudit = <A>(
       const mainSub = stream.subscribe({
         next: value => {
           lastValue = some(value);
-          if (!durationSubscriber) {
-            const tmp = _unsubscribableObservable(durationSelector(value));
-            durationSubscriber = tmp;
-            tmp.subscribe({
+          durationSubscriber
+            .ifNull(() => durationSelector(value))
+            .subscribe({
               next: endDuration,
-              complete: () => {
-                durationSubscriber?.unsubscribe();
-                durationSubscriber = null;
-              },
+              complete: durationSubscriber.unsubscribe,
             });
-          }
         },
         complete: () => {
           isComplete = true;
-          if (isNone(lastValue) || !durationSubscriber) {
+          if (isNone(lastValue) || !durationSubscriber.isNull()) {
             observer.complete();
           }
         },
@@ -695,7 +689,7 @@ export const ksAudit = <A>(
 
       return {
         unsubscribe: () => {
-          durationSubscriber?.unsubscribe();
+          durationSubscriber.unsubscribe();
           mainSub.unsubscribe();
         },
       };

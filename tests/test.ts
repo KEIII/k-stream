@@ -1206,9 +1206,9 @@ describe('ksAudit', () => {
     ]);
   });
 
-  it('should complete main stream before audit completes', async () => {
+  it('should emit empty when main completes before audit', async () => {
     const s = ksOf(42).pipe(ksAudit(() => ksTimeout(1_000)));
-    expect(await stackOut(s)).toEqual([42]);
+    expect(await stackOut(s)).toEqual([]);
   });
 
   it('should emit once', async () => {
