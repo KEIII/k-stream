@@ -1,24 +1,10 @@
+import { combineLatest, concat, forkJoin, of, timer } from 'rxjs';
+import { mapTo, switchMap, take } from 'rxjs/operators';
 import {
-  BehaviorSubject,
-  combineLatest,
-  concat,
-  forkJoin,
-  merge,
-  of,
-  timer,
-  asapScheduler,
-} from 'rxjs';
-import {
-  map,
-  mapTo,
-  pairwise,
-  shareReplay,
-  switchMap,
-  take,
-  takeUntil,
-  tap,
-} from 'rxjs/operators';
-import {
+  Either,
+  isLeft,
+  isRight,
+  ksBehaviourSubject,
   ksChangeConstructor,
   ksCold,
   ksCombineLatest,
@@ -33,13 +19,17 @@ import {
   ksMap,
   ksMapTo,
   ksMerge,
+  ksNever,
   ksOf,
   ksPairwise,
   ksPeriodic,
+  ksRepeat,
+  ksRepeatWhen,
+  ksRetryWhen,
   ksScan,
   ksShare,
   ksShareReplay,
-  ksBehaviourSubject,
+  ksSubject,
   ksSwitch,
   ksTake,
   ksTakeUntil,
@@ -48,48 +38,16 @@ import {
   ksThrottle,
   ksTimeout,
   ksToPromise,
-  ksZip,
-  none,
-  some,
-  ksSubject,
-  right,
-  left,
-  isRight,
-  isLeft,
-  ksNever,
-  Scheduler,
-  noopUnsubscribe,
-  ksRepeat,
-  ksRepeatWhen,
-  ksRetryWhen,
   ksWithLatestFrom,
-  ksAudit,
-  Stream,
-  Either,
-  Observable,
+  ksZip,
+  left,
+  none,
+  noopUnsubscribe,
+  right,
+  some,
 } from '../src';
 import { _unsubscribableObservable } from '../src/private';
-
-const stackOut = <A>(observable: Observable<A>): Promise<A[]> => {
-  return new Promise<A[]>(resolve => {
-    const output: A[] = [];
-    const _observable = _unsubscribableObservable(observable);
-    _observable.subscribe({
-      next: v => output.push(v),
-      complete: () => {
-        _observable.unsubscribe();
-        resolve(output);
-      },
-    });
-  });
-};
-
-const from = <T>(a: T[]) =>
-  ksCold<T>(({ next, complete }) => {
-    a.forEach(next);
-    complete();
-    return noopUnsubscribe;
-  });
+import { from, stackOut } from './utils';
 
 describe('_unsubscribableObservable', () => {
   it('should return noopUnsubscribe', () => {
@@ -650,56 +608,6 @@ describe('ksTakeWhile', () => {
   });
 });
 
-it('should works like RxJS (in some cases ;)', async () => {
-  const ms = 4500;
-  const random = Math.random();
-
-  const ksAsapScheduler: Scheduler = {
-    schedule: handler => {
-      let on = true;
-      Promise.resolve(() => on && handler());
-      return { unsubscribe: () => (on = false) };
-    },
-  };
-
-  const a = ksPeriodic(16, undefined, ksAsapScheduler)
-    .pipe(
-      ksSwitch(n => {
-        return ksConcat(
-          ksOf(n),
-          ksTimeout(200, undefined, ksAsapScheduler)
-            .pipe(ksMapTo(random))
-            .pipe(ksTake(1)),
-        );
-      }),
-    )
-    .pipe(ksMap(x => x * x))
-    .pipe(ksPairwise())
-    .pipe(ksTap({}))
-    .pipe(ksTakeUntil(ksTimeout(ms)));
-
-  const b = timer(0, 16, asapScheduler).pipe(
-    switchMap(n => {
-      return concat(
-        of(n),
-        timer(200, asapScheduler).pipe(mapTo(random), take(1)),
-      );
-    }),
-    map(x => x * x),
-    pairwise(),
-    tap(() => {}),
-    takeUntil(timer(ms)),
-  );
-
-  const aa = stackOut(ksMerge(ksCombineLatest(a, a), ksCombineLatest(a, a)));
-  const bb = stackOut<any>(merge(combineLatest([b, b]), combineLatest([b, b])));
-  const aaa = await aa;
-  const bbb = await bb;
-  const size = Math.min(aaa.length, bbb.length);
-
-  expect(aaa.slice(0, size)).toEqual(bbb.slice(0, size));
-});
-
 describe('ksBehaviourSubject', () => {
   it('should test empty observer', () => {
     const s = ksBehaviourSubject(1);
@@ -1193,194 +1101,5 @@ describe('ksWithLatestFrom', () => {
       [[1, 'b'], 'd'],
       [[2, 'b'], 'd'],
     ]);
-  });
-});
-
-describe('ksAudit', () => {
-  it('should ignore for time based on provided observable, then emit most recent value.', async () => {
-    const s = ksInterval(50)
-      .pipe(ksTakeWhile(x => x < 40))
-      .pipe(ksAudit(n => ksInterval(n * 10)));
-    expect(await stackOut(s)).toEqual([
-      0, 1, 2, 3, 4, 5, 7, 9, 11, 14, 17, 21, 26, 32, 39,
-    ]);
-  });
-
-  it('should emit empty when main completes before audit', async () => {
-    const s = ksOf(42).pipe(ksAudit(() => ksTimeout(1_000)));
-    expect(await stackOut(s)).toEqual([]);
-  });
-
-  it('should emit once', async () => {
-    const s = ksOf(42).pipe(ksAudit(() => ksOf(1)));
-    expect(await stackOut(s)).toEqual([42]);
-  });
-
-  it('should works if audit completes before main', async () => {
-    const s = from([1, 2]).pipe(ksAudit(() => from([1])));
-    expect(await stackOut(s)).toEqual([1, 2]);
-  });
-
-  it('should emit no values if durations are EMPTY', async () => {
-    const s = ksConcat(ksOf(1), ksOf(2))
-      .pipe(ksAudit(ksEmpty))
-      .pipe(ksTakeUntil(ksTimeout(1000)));
-    expect(await stackOut(s)).toEqual([]);
-  });
-});
-
-describe('performance', () => {
-  it('maximum call stack size exceeded', () => {
-    const m = ksMap((x: number) => x + 1);
-    let s = ksOf(0);
-    const max = 2_048;
-    for (let i = 0; i < max; i++) {
-      s = s.pipe(m);
-    }
-    let result = 0;
-    s.subscribe({ next: value => (result = value) }).unsubscribe();
-    expect(result).toBe(max);
-  });
-
-  it('rxjs: maximum call stack size exceeded', () => {
-    const m = map((x: number) => x + 1);
-    let s = of(0);
-    const max = 1_000;
-    for (let i = 0; i < max / 8; i++) {
-      s = s.pipe(m, m, m, m, m, m, m, m);
-    }
-    let result = 0;
-    s.subscribe({ next: value => (result = value) }).unsubscribe();
-    expect(result).toBe(max);
-  });
-});
-
-describe('diamond problem (glitches)', () => {
-  test('rxjs with display name', () => {
-    const firstName = new BehaviorSubject('John');
-    const lastName = new BehaviorSubject('Doe');
-    const isFirstNameShort = firstName.pipe(
-      map(n => n.length < 10),
-      shareReplay(1),
-    );
-    const fullName = combineLatest([firstName, lastName]).pipe(
-      map(([first, last]) => `${first} ${last}`),
-      shareReplay(1),
-    );
-    const displayName = isFirstNameShort.pipe(
-      switchMap(short => (short ? fullName : firstName)),
-      shareReplay(1),
-    );
-
-    const view = jest.fn();
-    const sub = displayName.subscribe({ next: view });
-    expect(view.mock.calls.length).toBe(1);
-
-    firstName.next('Joseph');
-    expect(view.mock.calls.length).toBe(3);
-
-    firstName.next('Jooooooooooooooseph');
-    expect(view.mock.calls.length).toBe(4);
-
-    sub.unsubscribe();
-  });
-
-  test('k-stream with display name', () => {
-    const firstName = ksBehaviourSubject('John');
-    const lastName = ksBehaviourSubject('Doe');
-    const isFirstNameShort = firstName.pipe(ksMap(n => n.length < 10));
-    const fullName = ksCombineLatest(firstName, lastName).pipe(
-      ksMap(([first, last]) => `${first} ${last}`),
-    );
-    const displayName = isFirstNameShort.pipe(
-      ksSwitch(short => (short ? fullName : firstName)),
-    );
-
-    const view = jest.fn();
-    const { unsubscribe } = displayName.subscribe({ next: view });
-    expect(view.mock.calls.length).toBe(1);
-    expect(displayName.snapshot()).toBe('John Doe');
-
-    firstName.next('Joseph');
-    expect(view.mock.calls.length).toBe(2);
-    expect(displayName.snapshot()).toBe('Joseph Doe');
-
-    firstName.next('Jooooooooooooooseph');
-    expect(view.mock.calls.length).toBe(5);
-    expect(displayName.snapshot()).toBe('Jooooooooooooooseph');
-
-    expect(view.mock.calls.map(args => args[0])).toEqual([
-      'John Doe',
-      'Joseph Doe',
-      'Jooooooooooooooseph Doe',
-      'Jooooooooooooooseph',
-      'Jooooooooooooooseph',
-    ]);
-
-    unsubscribe();
-  });
-
-  test('alphabet glitches', async () => {
-    const alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const a = ksPeriodic(0); // 0-----1-----2-----3-----4------
-    const b = a.pipe(ksMap(i => alphabet[i])); // a-----b-----c-----d-----e------
-    const c = a.pipe(ksMap(i => i * i)); // 0-----1-----4-----9-----16-----
-    const d = ksCombineLatest(b, c)
-      .pipe(ksMap(([_1, _2]) => `${_1}${_2}`))
-      .pipe(ksTake(alphabet.length));
-    expect(await stackOut(d)).toEqual([
-      'a0',
-      'b0',
-      'b1',
-      'c1',
-      'c4',
-      'd4',
-      'd9',
-      'e9',
-    ]);
-  });
-
-  test('alphabet right way', async () => {
-    const alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const a = ksPeriodic(1).pipe(ksTake(alphabet.length)); // 0-----1-----2-----3-----4----
-    const d = a.pipe(ksMap(i => alphabet[i]!.concat(String(i * i)))); // a0----b1----c4----d9----e16--
-    expect(await stackOut(d)).toEqual([
-      'a0',
-      'b1',
-      'c4',
-      'd9',
-      'e16',
-      'f25',
-      'g36',
-      'h49',
-    ]);
-  });
-});
-
-describe('Monad laws', () => {
-  const equivalence = async <T>(a: Stream<T>, b: Stream<T>) => {
-    expect(await stackOut(a)).toEqual(await stackOut(b));
-  };
-
-  it('Left identity', async () => {
-    const a = Math.random();
-    const ma = ksOf(a);
-    const f = (x: number) => ksOf(x * 2);
-    await equivalence(ma.pipe(ksSwitch(f)), f(a));
-  });
-
-  it('Right identity', async () => {
-    const ma = ksOf(Math.random());
-    await equivalence(ma.pipe(ksSwitch(ksOf)), ma);
-  });
-
-  it('Associativity', async () => {
-    const ma = ksOf(2);
-    const f = (x: number) => ksOf(x * 4);
-    const g = (x: number) => ksOf(x * 6);
-    await equivalence(
-      ma.pipe(ksSwitch(f)).pipe(ksSwitch(g)),
-      ma.pipe(ksSwitch(x => f(x).pipe(ksSwitch(g)))),
-    );
   });
 });

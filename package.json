@@ -23,7 +23,7 @@
   "scripts": {
     "build": "rm -rf ./dist && tsc",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
-    "prettier": "prettier --write ./src/*.ts",
+    "prettier": "prettier --write ./src/*.ts ./tests/*.ts",
     "version-patch": "npm version patch"
   },
   "license": "MIT",

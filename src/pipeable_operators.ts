@@ -664,6 +664,7 @@ export const ksAudit = <A>(
           lastValue = none;
           observer.next(value.value);
         }
+        console.log({ isComplete });
         if (isComplete) {
           observer.complete();
         }
