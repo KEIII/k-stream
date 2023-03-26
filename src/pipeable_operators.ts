@@ -659,14 +659,12 @@ export const ksAudit = <A>(
 
       const endDuration = () => {
         durationSubscriber.unsubscribe();
-        if (isSome(lastValue)) {
+        if (isComplete) {
+          observer.complete();
+        } else if (isSome(lastValue)) {
           const value = lastValue;
           lastValue = none;
           observer.next(value.value);
-        }
-        console.log({ isComplete });
-        if (isComplete) {
-          observer.complete();
         }
       };
 
@@ -682,7 +680,7 @@ export const ksAudit = <A>(
         },
         complete: () => {
           isComplete = true;
-          if (isNone(lastValue) || !durationSubscriber.isNull()) {
+          if (durationSubscriber.isNull()) {
             observer.complete();
           }
         },
