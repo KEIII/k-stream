@@ -5,7 +5,6 @@ import {
   Observer,
   Stream,
   PipeableOperator,
-  Unsubscribable,
 } from './core';
 import { some, none, Option, isSome, isNone } from './option';
 import { ksEmpty } from './creation_operators';
@@ -134,7 +133,7 @@ export const ksSwitch = <A, B>(
 
       return {
         unsubscribe: () => {
-          projectSubscription?.unsubscribe();
+          projectSubscription.unsubscribe();
           mainSubscription.unsubscribe();
         },
       };
