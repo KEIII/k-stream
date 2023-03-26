@@ -645,7 +645,7 @@ export const ksAudit = <A>(
       let isComplete = false;
 
       const endDuration = () => {
-        durationSubscriber.unsubscribe();
+        durationSubscriber.stop();
         if (isComplete) {
           observer.complete();
         } else if (isSome(lastValue)) {

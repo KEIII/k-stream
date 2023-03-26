@@ -44,7 +44,7 @@ describe('ksAudit', () => {
     expect(await stackOut(s)).toEqual([42]);
   });
 
-  it('should works if audit completes before main', async () => {
+  it('should emit twice', async () => {
     const s = from([1, 2]).pipe(ksAudit(() => from([1])));
     expect(await stackOut(s)).toEqual([1, 2]);
   });
