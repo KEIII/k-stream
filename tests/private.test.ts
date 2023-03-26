@@ -1,5 +1,5 @@
 import { ksCold, ksOf, noopUnsubscribe } from '../src';
-import { _subscribableOnce } from '../src/private';
+import { _subscribableOnce, _once } from '../src/private';
 
 describe('private', () => {
   it('should test _subscribableOnce', () => {
@@ -49,5 +49,13 @@ describe('private', () => {
       complete: () => r.push('a complete'),
     });
     expect(r).toEqual([]);
+  });
+
+  it('should call only once', () => {
+    const a = jest.fn();
+    const b = _once(a);
+    b();
+    b();
+    expect(a).toBeCalledTimes(1);
   });
 });

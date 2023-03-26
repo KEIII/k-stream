@@ -1,4 +1,5 @@
 import { noopUnsubscribe, Observable, Unsubscribable } from './core';
+import { isSome, none, some, Option } from './option';
 
 type UnsubscribableObservable<A> = Observable<A> & Unsubscribable;
 
@@ -98,5 +99,20 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
       isUnsubscribed = true;
       stop();
     },
+  };
+};
+
+/**
+ * Create a new function which can call only once.
+ */
+export const _once = <A extends any[], B>(
+  f: (...a: A) => B,
+): ((...a: A) => B) => {
+  let cache: Option<B> = none;
+  return (...a: A) => {
+    if (isSome(cache)) return cache.value;
+    const value = f(...a);
+    cache = some(value);
+    return value;
   };
 };

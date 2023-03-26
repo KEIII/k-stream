@@ -11,7 +11,7 @@ import { some, none, Option, isSome, isNone } from './option';
 import { ksEmpty } from './creation_operators';
 import { ksSubject, Subject } from './subject';
 import { Either, isRight, left } from './either';
-import { _subscribableOnce, _unsubscribableObservable } from './private';
+import { _once, _subscribableOnce, _unsubscribableObservable } from './private';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -166,7 +166,6 @@ export const ksTakeUntil = <A>(
         return mainSubscription;
       }
 
-      let isTerminated = false;
       const _notifier = _unsubscribableObservable(notifier);
 
       const unsubscribe = () => {
@@ -174,12 +173,10 @@ export const ksTakeUntil = <A>(
         mainSubscription.unsubscribe();
       };
 
-      const terminate = () => {
-        if (isTerminated) return;
-        isTerminated = true;
+      const terminate = _once(() => {
         complete();
         unsubscribe();
-      };
+      });
 
       _notifier.subscribe({
         next: terminate,
