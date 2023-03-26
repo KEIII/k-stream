@@ -93,7 +93,7 @@ export const ksSwitch = <A, B>(
 ): PipeableOperator<A, B> => {
   return stream => {
     return stream.constructor(({ next, complete }) => {
-      let projectSubscription: Unsubscribable | null = null;
+      const projectSubscription = _subscribableOnce<B>();
       let projectCompleted = false;
       let mainCompleted = false;
 
@@ -121,12 +121,10 @@ export const ksSwitch = <A, B>(
           return;
         }
         prevProjected = projected;
-        const projectUnsubscribe = projectSubscription?.unsubscribe;
-        projectSubscription = prevProjected.subscribe({
+        projectSubscription.restartWith(prevProjected).subscribe({
           next,
           complete: onProjectComplete,
         });
-        projectUnsubscribe?.(); // NOTE: we need to unsubscribe after create new subscription on projected stream
       };
 
       const mainSubscription = stream.subscribe({
@@ -459,9 +457,8 @@ export const ksRepeatWhen = <A>(
 ): PipeableOperator<A, A> => {
   return stream => {
     return stream.constructor(observer => {
-      let innerSub: Unsubscribable | null = null;
-      let notifierSub: Unsubscribable | null = null;
-      let syncResub = false;
+      const innerSub = _subscribableOnce<A>();
+      const notifierSub = _subscribableOnce();
       let completions$: Subject<void> | null = null;
       let isNotifierComplete = false;
       let isMainComplete = false;
@@ -477,15 +474,8 @@ export const ksRepeatWhen = <A>(
       const getCompletionSubject = () => {
         if (completions$ === null) {
           completions$ = ksSubject();
-          notifierSub?.unsubscribe();
-          notifierSub = notifier(completions$).subscribe({
-            next: () => {
-              if (innerSub) {
-                subscribeForRepeatWhen();
-              } else {
-                syncResub = true;
-              }
-            },
+          notifierSub.restartWith(notifier(completions$)).subscribe({
+            next: subscribeForRepeatWhen,
             complete: () => {
               isNotifierComplete = true;
               checkComplete();
@@ -497,8 +487,7 @@ export const ksRepeatWhen = <A>(
 
       const subscribeForRepeatWhen = () => {
         isMainComplete = false;
-        innerSub?.unsubscribe();
-        innerSub = stream.subscribe({
+        innerSub.restartWith(stream).subscribe({
           next: observer.next,
           complete: () => {
             isMainComplete = true;
@@ -507,20 +496,14 @@ export const ksRepeatWhen = <A>(
             }
           },
         });
-        if (syncResub) {
-          innerSub.unsubscribe();
-          innerSub = null;
-          syncResub = false;
-          subscribeForRepeatWhen();
-        }
       };
 
       subscribeForRepeatWhen();
 
       return {
         unsubscribe: () => {
-          notifierSub?.unsubscribe();
-          innerSub?.unsubscribe();
+          notifierSub.unsubscribe();
+          innerSub.unsubscribe();
         },
       };
     });
