@@ -10,7 +10,11 @@ import { some, none, Option, isSome, isNone } from './option';
 import { ksEmpty } from './creation_operators';
 import { ksSubject, Subject } from './subject';
 import { Either, isRight, left } from './either';
-import { _once, _subscribableOnce, _unsubscribableObservable } from './private';
+import {
+  _once,
+  _restartableObservable,
+  _unsubscribableObservable,
+} from './private';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -92,7 +96,7 @@ export const ksSwitch = <A, B>(
 ): PipeableOperator<A, B> => {
   return stream => {
     return stream.constructor(({ next, complete }) => {
-      const projectSubscription = _subscribableOnce<B>();
+      const projectSubscription = _restartableObservable<B>();
       let projectCompleted = false;
       let mainCompleted = false;
 
@@ -424,7 +428,7 @@ export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
   return stream => {
     return stream.constructor(observer => {
       let soFar = 0;
-      const innerSub = _subscribableOnce<A>();
+      const innerSub = _restartableObservable<A>();
 
       const subscribeForRepeat = () => {
         innerSub.restartWith(stream).subscribe({
@@ -456,8 +460,8 @@ export const ksRepeatWhen = <A>(
 ): PipeableOperator<A, A> => {
   return stream => {
     return stream.constructor(observer => {
-      const innerSub = _subscribableOnce<A>();
-      const notifierSub = _subscribableOnce();
+      const innerSub = _restartableObservable<A>();
+      const notifierSub = _restartableObservable();
       let completions$: Subject<void> | null = null;
       let isNotifierComplete = false;
       let isMainComplete = false;
@@ -517,8 +521,8 @@ export const ksRetryWhen = <E, A>(
 ): PipeableOperator<Either<E, A>, Either<E, A>> => {
   return stream => {
     return stream.constructor(observer => {
-      const innerSub = _subscribableOnce<Either<E, A>>();
-      const notifierSub = _subscribableOnce<Option<E>>();
+      const innerSub = _restartableObservable<Either<E, A>>();
+      const notifierSub = _restartableObservable<Option<E>>();
       let errors$: Subject<E> | null = null;
       let isMainComplete = false;
       let isLockComplete = false;
@@ -612,7 +616,7 @@ export const ksAudit = <A>(
   return stream => {
     return stream.constructor(observer => {
       let lastValue: Option<A> = none;
-      const durationSubscriber = _subscribableOnce<unknown>();
+      const durationSubscriber = _restartableObservable<unknown>();
       let isComplete = false;
 
       const endDuration = () => {

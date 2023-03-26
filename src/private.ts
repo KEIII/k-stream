@@ -35,7 +35,7 @@ export const _unsubscribableObservable = <A>(
   };
 };
 
-export type SubscribableOnce<A> = Unsubscribable & {
+export type RestartableObservable<A> = Unsubscribable & {
   isNull: () => boolean;
   ifNull: (f: () => Observable<A>) => Observable<A>;
   restartWith: (observable: Observable<A>) => Observable<A>;
@@ -43,11 +43,11 @@ export type SubscribableOnce<A> = Unsubscribable & {
 };
 
 /**
- * Returns object with:
- * - `ifNull()` allows to create subscription once
- * - `unsubscribe()` allows to unsubscribe anytime
+ * Returns Observable object what can be restarted with another one.
+ *
+ * @private
  */
-export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
+export const _restartableObservable = <A>(): RestartableObservable<A> => {
   let isUnsubscribed = false;
   let currentSub: UnsubscribableObservable<A> | null = null;
 
@@ -61,7 +61,7 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
     unsubscribe: stop,
   };
 
-  const restartWith: SubscribableOnce<A>['restartWith'] = observable => {
+  const restartWith: RestartableObservable<A>['restartWith'] = observable => {
     stop();
     const sub = _unsubscribableObservable(observable);
     currentSub = sub;
@@ -104,6 +104,8 @@ export const _subscribableOnce = <A>(): SubscribableOnce<A> => {
 
 /**
  * Create a new function which can call only once.
+ *
+ * @private
  */
 export const _once = <A extends any[], B>(
   f: (...a: A) => B,

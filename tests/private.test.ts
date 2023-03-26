@@ -1,7 +1,7 @@
 import { ksCold, ksOf, noopUnsubscribe } from '../src';
 import {
-  _subscribableOnce,
   _once,
+  _restartableObservable,
   _unsubscribableObservable,
 } from '../src/private';
 
@@ -19,14 +19,14 @@ describe('private', () => {
     expect(result).toEqual(['teardown', 'teardown', 'teardown']);
   });
 
-  it('should test _subscribableOnce', () => {
+  it('should test _restartableObservable', () => {
     const n = [1, 2, 3];
     const s = ksCold<number>(({ next, complete }) => {
       next(n.pop()!);
       complete();
       return noopUnsubscribe;
     });
-    const once = _subscribableOnce<number>();
+    const once = _restartableObservable<number>();
     const r: number[] = [];
     once.restartWith(s).subscribe({
       next: v => r.push(v),
@@ -42,7 +42,7 @@ describe('private', () => {
   });
 
   it('should ignore after restart', () => {
-    const once = _subscribableOnce<string>();
+    const once = _restartableObservable<string>();
     const r: string[] = [];
     const a = once.restartWith(ksOf('a'));
     const b = once.restartWith(ksOf('b'));
@@ -58,7 +58,7 @@ describe('private', () => {
   });
 
   it('should ignore after unsubscribe', () => {
-    const once = _subscribableOnce<string>();
+    const once = _restartableObservable<string>();
     once.unsubscribe();
     const r: string[] = [];
     once.restartWith(ksOf('a')).subscribe({
