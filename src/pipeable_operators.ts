@@ -21,7 +21,7 @@ type TimeoutId = ReturnType<typeof setTimeout>;
 export const ksChangeConstructor = <A>(
   constructor: KsConstructor,
 ): PipeableOperator<A, A> => {
-  return stream => constructor(stream.subscribe);
+  return source => constructor(source.subscribe);
 };
 
 /**
@@ -30,9 +30,9 @@ export const ksChangeConstructor = <A>(
 export const ksMap = <A, B>(
   project: (value: A) => B,
 ): PipeableOperator<A, B> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
-      return stream.subscribe({
+  return source => {
+    return source.constructor(({ next, complete }) => {
+      return source.subscribe({
         next: value => next(project(value)),
         complete,
       });
@@ -51,9 +51,9 @@ export const ksMapTo = <A, B>(value: B): PipeableOperator<A, B> => {
  * Transparently perform actions or side-effects, such as logging.
  */
 export const ksTap = <A>(observer: Observer<A>): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
-      return stream.subscribe({
+  return source => {
+    return source.constructor(({ next, complete }) => {
+      return source.subscribe({
         next: value => {
           observer.next?.(value);
           next(value);
@@ -73,9 +73,9 @@ export const ksTap = <A>(observer: Observer<A>): PipeableOperator<A, A> => {
 export const ksFilterMap = <A, B>(
   select: (value: A) => Option<B>,
 ): PipeableOperator<A, B> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
-      return stream.subscribe({
+  return source => {
+    return source.constructor(({ next, complete }) => {
+      return source.subscribe({
         next: value => {
           const valueOptional = select(value);
           if (isSome(valueOptional)) {
@@ -94,8 +94,8 @@ export const ksFilterMap = <A, B>(
 export const ksSwitch = <A, B>(
   project: (value: A) => Stream<B>,
 ): PipeableOperator<A, B> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       const projectSubscription = _restartableObservable<B>();
       let projectCompleted = false;
       let mainCompleted = false;
@@ -130,7 +130,7 @@ export const ksSwitch = <A, B>(
         });
       };
 
-      const mainSubscription = stream.subscribe({
+      const mainSubscription = source.subscribe({
         next: onMainNext,
         complete: onMainComplete,
       });
@@ -151,11 +151,11 @@ export const ksSwitch = <A, B>(
 export const ksTakeUntil = <A>(
   notifier: Stream<unknown>,
 ): PipeableOperator<A, A> => {
-  return stream => {
-    const newStream = stream.constructor<A>(({ next, complete }) => {
+  return source => {
+    const newStream = source.constructor<A>(({ next, complete }) => {
       let isCompleted = false;
 
-      const mainSubscription = stream.subscribe({
+      const mainSubscription = source.subscribe({
         next,
         complete: () => {
           isCompleted = true;
@@ -201,9 +201,9 @@ export const ksTakeUntil = <A>(
  */
 export const ksTake = <A>(count: number): PipeableOperator<A, A> => {
   if (count <= 0) return ksEmpty;
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
-      const _stream = _unsubscribableObservable(stream);
+  return source => {
+    return source.constructor(({ next, complete }) => {
+      const _stream = _unsubscribableObservable(source);
       let seen = 0;
 
       const onComplete: Complete = () => {
@@ -232,9 +232,9 @@ export const ksTake = <A>(count: number): PipeableOperator<A, A> => {
 export const ksTakeWhile = <A>(
   predicate: (value: A, index: number) => boolean,
 ): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
-      const _stream = _unsubscribableObservable(stream);
+  return source => {
+    return source.constructor(({ next, complete }) => {
+      const _stream = _unsubscribableObservable(source);
       let index = 0;
 
       const onComplete: Complete = () => {
@@ -260,8 +260,8 @@ export const ksTakeWhile = <A>(
  * Delay emitted values by given time.
  */
 export const ksDelay = <A>(ms: number): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       const timers = new Set<TimeoutId>();
 
       const clearTimers = () => {
@@ -269,7 +269,7 @@ export const ksDelay = <A>(ms: number): PipeableOperator<A, A> => {
         timers.clear();
       };
 
-      const subscription = stream.subscribe({
+      const subscription = source.subscribe({
         next: value => {
           const t = setTimeout(() => {
             next(value);
@@ -300,8 +300,8 @@ export const ksDelay = <A>(ms: number): PipeableOperator<A, A> => {
  * Discard emitted values that take less than the specified time between output.
  */
 export const ksDebounce = <A>(dueTime: number): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       let timeoutId: TimeoutId;
       let lastValue: Option<A> = none;
 
@@ -324,7 +324,7 @@ export const ksDebounce = <A>(dueTime: number): PipeableOperator<A, A> => {
         complete();
       };
 
-      const subscription = stream.subscribe({
+      const subscription = source.subscribe({
         next: debounceNext,
         complete: debounceComplete,
       });
@@ -344,8 +344,8 @@ export const ksDebounce = <A>(dueTime: number): PipeableOperator<A, A> => {
  * Emit first value then ignore for specified duration.
  */
 export const ksThrottle = <A>(duration: number): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       let executedTime = Number.MIN_SAFE_INTEGER;
       let lastValue: Option<A> = none;
 
@@ -371,7 +371,7 @@ export const ksThrottle = <A>(duration: number): PipeableOperator<A, A> => {
         complete();
       };
 
-      return stream.subscribe({
+      return source.subscribe({
         next: throttleNext,
         complete: throttleComplete,
       });
@@ -383,10 +383,10 @@ export const ksThrottle = <A>(duration: number): PipeableOperator<A, A> => {
  * Emit the previous and current values as an array.
  */
 export const ksPairwise = <A>(): PipeableOperator<A, [A, A]> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       let prevValue: Option<A> = none;
-      return stream.subscribe({
+      return source.subscribe({
         next: value => {
           if (isSome(prevValue)) {
             next([prevValue.value, value]);
@@ -406,10 +406,10 @@ export const ksScan = <A, B>(
   accumulator: (acc: B, curr: A) => B,
   seed: B,
 ): PipeableOperator<A, B> => {
-  return stream => {
-    return stream.constructor(({ next, complete }) => {
+  return source => {
+    return source.constructor(({ next, complete }) => {
       let acc = seed;
-      return stream.subscribe({
+      return source.subscribe({
         next: value => {
           acc = accumulator(acc, value);
           next(acc);
@@ -425,13 +425,13 @@ export const ksScan = <A, B>(
  */
 export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
   if (count <= 0) return ksEmpty;
-  return stream => {
-    return stream.constructor(observer => {
+  return source => {
+    return source.constructor(observer => {
       let soFar = 0;
       const innerSub = _restartableObservable<A>();
 
       const subscribeForRepeat = () => {
-        innerSub.restartWith(stream).subscribe({
+        innerSub.restartWith(source).subscribe({
           next: observer.next,
           complete: () => {
             if (++soFar < count) {
@@ -458,8 +458,8 @@ export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
 export const ksRepeatWhen = <A>(
   notifier: (notifications: Stream<void>) => Stream<void>,
 ): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(observer => {
+  return source => {
+    return source.constructor(observer => {
       const innerSub = _restartableObservable<A>();
       const notifierSub = _restartableObservable();
       let completions$: Subject<void> | null = null;
@@ -490,7 +490,7 @@ export const ksRepeatWhen = <A>(
 
       const subscribeForRepeatWhen = () => {
         isMainComplete = false;
-        innerSub.restartWith(stream).subscribe({
+        innerSub.restartWith(source).subscribe({
           next: observer.next,
           complete: () => {
             isMainComplete = true;
@@ -519,8 +519,8 @@ export const ksRepeatWhen = <A>(
 export const ksRetryWhen = <E, A>(
   notifier: (errors: Stream<E>) => Stream<Option<E>>,
 ): PipeableOperator<Either<E, A>, Either<E, A>> => {
-  return stream => {
-    return stream.constructor(observer => {
+  return source => {
+    return source.constructor(observer => {
       const innerSub = _restartableObservable<Either<E, A>>();
       const notifierSub = _restartableObservable<Option<E>>();
       let errors$: Subject<E> | null = null;
@@ -530,7 +530,7 @@ export const ksRetryWhen = <E, A>(
       const subscribeForRetryWhen = () => {
         isMainComplete = false;
         isLockComplete = false;
-        innerSub.restartWith(stream).subscribe({
+        innerSub.restartWith(source).subscribe({
           next: eitherValue => {
             if (isRight(eitherValue)) {
               isLockComplete = false;
@@ -583,13 +583,13 @@ export const ksRetryWhen = <E, A>(
 export const ksWithLatestFrom = <A, B>(
   other: Stream<B>,
 ): PipeableOperator<A, [A, B]> => {
-  return stream => {
-    return stream.constructor(observer => {
+  return source => {
+    return source.constructor(observer => {
       let otherOptional: Option<B> = none;
       const otherSub = other.subscribe({
         next: value => (otherOptional = some(value)),
       });
-      const mainSub = stream.subscribe({
+      const mainSub = source.subscribe({
         next: value => {
           if (isSome(otherOptional)) {
             observer.next([value, otherOptional.value]);
@@ -613,8 +613,8 @@ export const ksWithLatestFrom = <A, B>(
 export const ksAudit = <A>(
   durationSelector: (value: A) => Stream<unknown>,
 ): PipeableOperator<A, A> => {
-  return stream => {
-    return stream.constructor(observer => {
+  return source => {
+    return source.constructor(observer => {
       let lastValue: Option<A> = none;
       const durationSubscriber = _restartableObservable<unknown>();
       let isComplete = false;
@@ -630,7 +630,7 @@ export const ksAudit = <A>(
         }
       };
 
-      const mainSub = stream.subscribe({
+      const mainSub = source.subscribe({
         next: value => {
           lastValue = some(value);
           durationSubscriber
