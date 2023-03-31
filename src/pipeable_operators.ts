@@ -429,15 +429,14 @@ export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
     return source.constructor(observer => {
       let soFar = 0;
       const innerSub = _restartableObservable<A>();
+      const repeatSubj = ksSubject<void>();
 
       const subscribeForRepeat = () => {
         innerSub.restartWith(source).subscribe({
           next: observer.next,
           complete: () => {
             if (++soFar < count) {
-              // repeat asynchronously
-              // waiting for the previous to be unsubscribed
-              Promise.resolve().then(subscribeForRepeat);
+              repeatSubj.next();
             } else {
               observer.complete();
             }
@@ -445,9 +444,18 @@ export const ksRepeat = <A>(count: number): PipeableOperator<A, A> => {
         });
       };
 
+      const repeatSub = repeatSubj
+        .pipe(ksDelay(0)) // defer repeat so prev innerSub unsubscribes
+        .subscribe({ next: subscribeForRepeat });
+
       subscribeForRepeat();
 
-      return innerSub;
+      return {
+        unsubscribe: () => {
+          repeatSub.unsubscribe();
+          innerSub.unsubscribe();
+        },
+      };
     });
   };
 };
