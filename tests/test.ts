@@ -423,7 +423,7 @@ describe('ksCombineLatest', () => {
     const limit = 100;
     const ms = 5;
     const s = ksPeriodic(ms).pipe(ksTake(limit));
-    const a = await stackOut(ksCombineLatest(s, s));
+    const a = await stackOut(ksCombineLatest([s, s]));
     const rxjsStream = timer(0, ms).pipe(take(limit));
     const b = await stackOut(combineLatest([rxjsStream, rxjsStream]));
     expect(a).toEqual(b);

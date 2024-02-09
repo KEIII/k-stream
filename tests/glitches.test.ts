@@ -44,7 +44,7 @@ describe('diamond problem (glitches)', () => {
     const firstName = ksBehaviourSubject('John');
     const lastName = ksBehaviourSubject('Doe');
     const isFirstNameShort = firstName.pipe(ksMap(n => n.length < 10));
-    const fullName = ksCombineLatest(firstName, lastName).pipe(
+    const fullName = ksCombineLatest([firstName, lastName]).pipe(
       ksMap(([first, last]) => `${first} ${last}`),
     );
     const displayName = isFirstNameShort.pipe(
@@ -80,7 +80,7 @@ describe('diamond problem (glitches)', () => {
     const a = ksPeriodic(0); // 0-----1-----2-----3-----4------
     const b = a.pipe(ksMap(i => alphabet[i])); // a-----b-----c-----d-----e------
     const c = a.pipe(ksMap(i => i * i)); // 0-----1-----4-----9-----16-----
-    const d = ksCombineLatest(b, c)
+    const d = ksCombineLatest([b, c])
       .pipe(ksMap(([_1, _2]) => `${_1}${_2}`))
       .pipe(ksTake(alphabet.length));
     expect(await stackOut(d)).toEqual([

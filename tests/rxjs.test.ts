@@ -67,7 +67,9 @@ it('should works like RxJS (in some cases ;)', async () => {
     takeUntil(timer(ms)),
   );
 
-  const aa = stackOut(ksMerge(ksCombineLatest(a, a), ksCombineLatest(a, a)));
+  const aa = stackOut(
+    ksMerge(ksCombineLatest([a, a]), ksCombineLatest([a, a])),
+  );
   const bb = stackOut<any>(merge(combineLatest([b, b]), combineLatest([b, b])));
   const aaa = await aa;
   const bbb = await bb;

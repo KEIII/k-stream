@@ -237,56 +237,43 @@ export const ksPeriodic = (
 /**
  * When any observable emits a value, emit the last emitted value from each.
  */
-export const ksCombineLatest = <A, B>(
-  stream_a: Stream<A>,
-  stream_b: Stream<B>,
-): Stream<[A, B]> => {
-  return stream_a.constructor(({ next, complete }) => {
-    let completed_a = false;
-    let completed_b = false;
-    let value_a: Option<A> = none;
-    let value_b: Option<B> = none;
-    const a = _unsubscribableObservable(stream_a);
-    const b = _unsubscribableObservable(stream_b);
+export const ksCombineLatest = <A extends unknown[]>(
+  streams: [...{ [K in keyof A]: Stream<A[K]> }],
+): Stream<A> => {
+  if (streams.length < 1) return ksNever;
+  return streams[0].constructor(({ next, complete }) => {
+    const observables = streams.map(_unsubscribableObservable);
+    const completedObservables = streams.map(() => false);
+    const valueOptionObservables = streams.map((): Option<unknown> => none);
 
     const unsubscribe = () => {
-      b.unsubscribe();
-      a.unsubscribe();
+      return observables.forEach(observable => observable.unsubscribe());
     };
 
     const tryNext = () => {
-      if (isSome(value_a) && isSome(value_b)) {
-        return next([value_a.value, value_b.value]);
+      if (valueOptionObservables.every(isSome)) {
+        next(valueOptionObservables.map(option => option.value) as A);
       }
     };
 
     const tryComplete = () => {
-      if (completed_a && completed_b) {
+      if (completedObservables.every(completed => completed)) {
         complete();
         unsubscribe();
       }
     };
 
-    a.subscribe({
-      next: value => {
-        value_a = some(value);
-        tryNext();
-      },
-      complete: () => {
-        completed_a = true;
-        tryComplete();
-      },
-    });
-
-    b.subscribe({
-      next: value => {
-        value_b = some(value);
-        tryNext();
-      },
-      complete: () => {
-        completed_b = true;
-        tryComplete();
-      },
+    observables.forEach((observable, index) => {
+      observable.subscribe({
+        next: value => {
+          valueOptionObservables[index] = some(value);
+          tryNext();
+        },
+        complete: () => {
+          completedObservables[index] = true;
+          tryComplete();
+        },
+      });
     });
 
     return { unsubscribe };
