@@ -47,24 +47,5 @@
     "rxjs": "^7.8.1",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
-  },
-  "prettier": {
-    "arrowParens": "avoid",
-    "jsxSingleQuote": true,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "endOfLine": "auto"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "transform": {
-      "^.+\\.ts?$": [
-        "ts-jest",
-        {
-          "tsconfig": "tsconfig.json"
-        }
-      ]
-    }
   }
 }
