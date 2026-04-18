@@ -71,7 +71,7 @@ export function useStream<T>(stream: Stream<T>): T | null {
   const valueRef = useRef<T>(stream.snapshot());
   const streamRef = useRef(stream);
 
-  // sync value on stream has been changed
+  // Handle dynamic stream replacement: sync refs during render (avoids tearing in Concurrent Mode)
   if (streamRef.current !== stream) {
     streamRef.current = stream;
     valueRef.current = stream.snapshot();
