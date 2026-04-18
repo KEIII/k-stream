@@ -55,7 +55,7 @@ export const ksSubject = <A>(constructor = ksShare): Subject<A> => {
     complete,
     next,
     snapshot: () => {
-      return isSome(lastValue) ? lastValue.value : undefined;
+      return isSome(lastValue) ? lastValue.value : null;
     },
   };
 

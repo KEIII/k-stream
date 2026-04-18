@@ -36,7 +36,7 @@ export type Observable<A> = {
 export type Stream<A> = Observable<A> & {
   readonly pipe: Pipe<A>;
   readonly constructor: KsConstructor;
-  readonly snapshot: () => A | undefined;
+  readonly snapshot: () => A | null;
 };
 
 export type KsConstructor = <A>(subscriber: SubscriberRequired<A>) => Stream<A>;
@@ -95,7 +95,7 @@ export const ksCold: KsConstructor = <A>(
     subscribe,
     pipe: operator => operator(self),
     constructor: ksCold,
-    snapshot: noop,
+    snapshot: () => null,
   };
 
   return self;
@@ -118,9 +118,7 @@ const createShareStream = <A>(
     }
     // We need to save last value before notify observers
     // it leads to duplicates with circular dependencies but more consistent
-    if (replay) {
-      lastValue = some(value);
-    }
+    lastValue = some(value);
     observersMap.forEach(observer => observer.next?.(value));
   };
 
@@ -176,9 +174,7 @@ const createShareStream = <A>(
     subscribe,
     pipe: operator => operator(self),
     constructor: replay ? ksShareReplay : ksShare,
-    snapshot: () => {
-      return isSome(lastValue) ? lastValue.value : undefined;
-    },
+    snapshot: () => isSome(lastValue) ? lastValue.value : null,
   };
 
   return self;

@@ -1,8 +1,8 @@
 import { Complete, ksShareReplay, Next, Observer } from './core';
 import { Subject } from './subject';
 
-export type BehaviourSubject<A> = Subject<A> & {
-  readonly getValue: () => A;
+export type BehaviourSubject<A> = Omit<Subject<A>, 'snapshot'> & {
+  readonly snapshot: () => A;
 };
 
 export const ksBehaviourSubject = <A>(
@@ -31,8 +31,6 @@ export const ksBehaviourSubject = <A>(
     observersMap.forEach(observer => observer.complete?.());
   };
 
-  const getValue = () => currentValue;
-
   const self: BehaviourSubject<A> = {
     subscribe: observer => {
       const subscribeId = Symbol();
@@ -52,8 +50,7 @@ export const ksBehaviourSubject = <A>(
     constructor: constructor,
     complete,
     next,
-    getValue,
-    snapshot: getValue,
+    snapshot: () => currentValue,
   };
 
   return self;

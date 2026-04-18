@@ -137,7 +137,7 @@ describe('ksCold', () => {
   it('should not return last emitted value', () => {
     const s = ksOf(42, ksCold);
     const { unsubscribe } = s.subscribe({});
-    expect(s.snapshot()).toBeUndefined();
+    expect(s.snapshot()).toBeNull();
     unsubscribe();
   });
 
@@ -220,10 +220,10 @@ describe('ksShare', () => {
     expect(await sb).toEqual([4, 16, 36, 64, 100, 144, 196, 256, 324]);
   });
 
-  it('should not return last emitted value', () => {
+  it('should return last emitted value', () => {
     const s = ksOf(42, ksShare);
     const { unsubscribe } = s.subscribe({});
-    expect(s.snapshot()).toBeUndefined();
+    expect(s.snapshot()).toBe(42);
     unsubscribe();
   });
 
@@ -565,8 +565,8 @@ describe('ksBehaviourSubject', () => {
   it('should emit last value after subscribe', async () => {
     const r = { v: 0, c: false, emitted: false };
     const s = ksBehaviourSubject(0);
-    s.next(s.getValue() + 1);
-    s.next(s.getValue() + 1);
+    s.next(s.snapshot() + 1);
+    s.next(s.snapshot() + 1);
     s.complete();
     s.subscribe({
       next: v => (r.v = v),
@@ -589,7 +589,7 @@ describe('ksBehaviourSubject', () => {
     s.next(0);
     const a = stackOut(s);
     for (let i = 1; i < 10; ++i) {
-      s.next(s.getValue() + i);
+      s.next(s.snapshot() + i);
     }
     const b = stackOut(s);
     s.complete();
@@ -602,11 +602,11 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(0);
     let count = 0;
     const next = () => count++;
-    s.next(s.getValue() + 1);
+    s.next(s.snapshot() + 1);
     s.subscribe({ next }).unsubscribe();
-    s.next(s.getValue() + 1);
+    s.next(s.snapshot() + 1);
     s.subscribe({ next }).unsubscribe();
-    s.next(s.getValue() + 1);
+    s.next(s.snapshot() + 1);
     expect(count).toEqual(2);
   });
 
@@ -616,7 +616,7 @@ describe('ksBehaviourSubject', () => {
     s.complete();
     s.complete();
     s.next(2);
-    expect(s.getValue()).toBe(1);
+    expect(s.snapshot()).toBe(1);
     expect(await a).toEqual([1]);
   });
 
@@ -632,8 +632,8 @@ describe('ksBehaviourSubject', () => {
     const s = ksBehaviourSubject(0);
     const a = stackOut(s);
     const b = stackOut(s);
-    s.next(s.getValue() + 1);
-    s.next(s.getValue() + 1);
+    s.next(s.snapshot() + 1);
+    s.next(s.snapshot() + 1);
     s.complete();
     expect(await a).toEqual(await b);
   });
@@ -681,7 +681,7 @@ describe('ksSubject', () => {
   });
 
   it('should test initial last value', () => {
-    expect(ksSubject().snapshot()).toBeUndefined();
+    expect(ksSubject().snapshot()).toBeNull();
   });
 
   it('should test empty observer', () => {
