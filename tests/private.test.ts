@@ -73,6 +73,6 @@ describe('private', () => {
     const b = _once(a);
     b();
     b();
-    expect(a).toBeCalledTimes(1);
+    expect(a).toHaveBeenCalledTimes(1);
   });
 });

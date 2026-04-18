@@ -174,7 +174,7 @@ const createShareStream = <A>(
     subscribe,
     pipe: operator => operator(self),
     constructor: replay ? ksShareReplay : ksShare,
-    snapshot: () => isSome(lastValue) ? lastValue.value : null,
+    snapshot: () => (isSome(lastValue) ? lastValue.value : null),
   };
 
   return self;
