@@ -21,6 +21,7 @@
     "/src"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "rm -rf ./dist && tsc",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
     "prettier": "prettier --write ./src/*.ts ./tests/*.ts",
