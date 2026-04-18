@@ -65,27 +65,37 @@ const stream = ksShare<MouseEvent>(observer => {
 ### React Hook
 
 ```tsx
-import { useCallback, useSyncExternalStore } from "react";
-import {
-  type Stream,
-  type BehaviourSubject,
-  ksBehaviourSubject,
-} from "@keiii/k-stream";
-
 export function useStream<T>(stream: BehaviourSubject<T>): T;
 export function useStream<T>(stream: Stream<T>): T | null;
 export function useStream<T>(stream: Stream<T>): T | null {
-  const getSnapshot = useCallback(() => stream.snapshot() ?? null, [stream]);
+  const valueRef = useRef<T>(stream.snapshot());
+  const streamRef = useRef(stream);
+
+  // sync value on stream has been changed
+  if (streamRef.current !== stream) {
+    streamRef.current = stream;
+    valueRef.current = stream.snapshot();
+  }
+
   return useSyncExternalStore(
-    useCallback((next) => stream.subscribe({ next }).unsubscribe, [stream]),
-    getSnapshot,
-    getSnapshot
+    useCallback(
+      (onStoreChange: () => void) =>
+        stream.subscribe({
+          next: (value) => {
+            valueRef.current = value;
+            onStoreChange();
+          },
+        }).unsubscribe,
+      [stream]
+    ),
+    useCallback(() => valueRef.current, []),
+    stream.snapshot
   );
 }
 
 const counter$ = ksBehaviourSubject(0);
-const increment = () => counter$.next(counter$.getValue() + 1);
-const decrement = () => counter$.next(counter$.getValue() - 1);
+const increment = () => counter$.next(counter$.snapshot() + 1);
+const decrement = () => counter$.next(counter$.snapshot() - 1);
 
 function Counter() {
   return (
