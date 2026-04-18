@@ -88,7 +88,7 @@ export function useStream<T>(stream: Stream<T>): T | null {
         }).unsubscribe,
       [stream]
     ),
-    useCallback(() => valueRef.current, []),
+    () => valueRef.current,
     stream.snapshot
   );
 }
