@@ -68,28 +68,13 @@ const stream = ksShare<MouseEvent>(observer => {
 export function useStream<T>(stream: BehaviourSubject<T>): T;
 export function useStream<T>(stream: Stream<T>): T | null;
 export function useStream<T>(stream: Stream<T>): T | null {
-  const valueRef = useRef<T>(stream.snapshot());
-  const streamRef = useRef(stream);
-
-  // Handle dynamic stream replacement: sync refs during render (avoids tearing in Concurrent Mode)
-  if (streamRef.current !== stream) {
-    streamRef.current = stream;
-    valueRef.current = stream.snapshot();
-  }
-
   return useSyncExternalStore(
     useCallback(
-      (onStoreChange: () => void) =>
-        stream.subscribe({
-          next: (value) => {
-            valueRef.current = value;
-            onStoreChange();
-          },
-        }).unsubscribe,
-      [stream]
+      (onStoreChange) => stream.subscribe({ next: onStoreChange }).unsubscribe,
+      [stream],
     ),
-    () => valueRef.current,
-    stream.snapshot
+    stream.snapshot,
+    stream.snapshot,
   );
 }
 
@@ -175,4 +160,3 @@ export const ksLoading = <A, B>(
   };
 };
 ```
-
